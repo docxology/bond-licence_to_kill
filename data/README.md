@@ -1,13 +1,11 @@
-# licence_to_kill/data
+# data/
 
-Project-maintained **inputs** for the code exemplar (not pipeline outputs).
+Advisory validation inputs for `licence_to_kill` (ROGUE):
 
-## Quick reference
+- `claim_ledger.yaml` — sourced numeric/algorithmic claims (IMO GT formula,
+  seawater density, diesel SFC, DFS cycle enumeration, backward induction)
+  mapped to the modules that use them.
 
-| File | Role |
-| --- | --- |
-| `claim_ledger.yaml` | Source-backed numeric and artifact claims for evidence validation |
-
-Generated analysis outputs belong under `output/` during pipeline runs, not here.
-
-Schema and edit protocol: [`AGENTS.md`](AGENTS.md).
+This directory holds declarative inputs only. Deterministic analysis outputs
+(figures, mission outcomes, variable maps) are regenerated under `output/`
+by `src/` and `scripts/`, and are git-ignored.

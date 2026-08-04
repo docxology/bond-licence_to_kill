@@ -1,3 +1,4 @@
-# licence-to-kill skill
+# licence-to-kill skill directory
 
-> Agent skill for [`licence_to_kill`](../..). Load via an AGENTS.md-aware runtime.
+The `SKILL.md` file is the Hermes/agentskills.io-compatible skill for the
+ROGUE mission package.

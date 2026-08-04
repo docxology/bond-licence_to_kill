@@ -1,25 +1,30 @@
-conditions:
-  - name: conservative_step
-    role: reference
-    description: "Stable gradient-descent step below the spectral bound."
-  - name: near_optimal_step
-    role: proposed
-    description: "Template-recommended step near the stable convergence region."
-  - name: aggressive_step
-    role: variant
-    description: "Stress condition near or above the stability boundary."
-metrics:
-  primary:
-    name: objective_value
-    direction: minimize
-protocol: "Run the deterministic quadratic optimization sweep with identical initialization, seeds, tolerance, and iteration cap across all declared step-size conditions."
-expected_figures:
-  - fig:convergence_plot
-  - fig:performance_benchmark
-  - fig:step_size_sensitivity
-expected_tables:
-  - tbl:optimization_results
-baselines:
-  - conservative_step
-ablations:
-  - aggressive_step
+# ROGUE experiment plan — validation inputs only; declares the deterministic runs.
+project: licence_to_kill
+codename: ROGUE
+
+runs:
+  - name: laundering
+    module: laundering_graph
+    inputs:
+      seed: 0
+      sources: ["S1", "S2", "S3"]
+      sinks: ["B1", "B2", "B3", "B4"]
+    outputs: [layering_score, integration_score, mixing_entropy, num_cycles, num_funnels, num_layering_paths]
+  - name: vessel
+    module: vessel_forensics
+    inputs:
+      profile: Wavekrest
+      observed: {cargo_mass_t: 900.0, declared_displacement_t: 700.0}
+    outputs: [gross_tonnage, endurance_nm, num_anomalies, anomaly_score]
+  - name: rogue
+    module: rogue_ops
+    inputs: {horizon: 10, alert_max: 10}
+    outputs: [optimal_value, first_action, peak_blowback]
+
+primary_metrics:
+  - layering_score
+  - integration_score
+  - optimal_expected_value
+
+baseline: canonical seeded network and canonical Wavekrest-class profile
+ablation: seed sensitivity (same structure, different seed changes amounts)

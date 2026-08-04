@@ -1,19 +1,13 @@
-# Code Project Configuration - Optimization Research Exemplar
-# Comprehensive research project demonstrating advanced optimization algorithms
-# This file serves as a meta-artifact linking the prose of the manuscript to the execution
-# layer. It is loaded by `yaml.safe_load` inside `infrastructure/rendering/_pdf_combined_renderer.py`
-# (manuscript metadata) and `projects/working/bond/licence_to_kill/scripts/z_generate_manuscript_variables.py`
-# (experiment parameters).
+# licence_to_kill — Licence to Kill (1989) · mission codename ROGUE
+# PROJECT BOND film package: deterministic special-agent mission software.
+# Loaded by scripts/z_generate_manuscript_variables.py (via
+# src/licence_to_kill/manuscript_variables.py) to hydrate manuscript tokens.
 
-# Consumed by: `infrastructure/rendering/pdf_renderer.py` and `infrastructure/reporting/pipeline_report_model.py`
 paper:
-  # RASP Standard: Title must be descriptive and objective
-  title: "Convergence Analysis of Gradient Descent Optimization"
-  subtitle: "Theoretical Bounds and Empirical Performance in Quadratic Minimization"
-  version: "2.5.2"
-  date: "2026-06-26" # Auto-generated via `infrastructure/validation/output/validator.py` if empty
+  title: "Licence to Kill: ROGUE — Special-Agent Mission Software for Money-Laundering, Vessel-Forensic, and Rogue-Operation Analysis"
+  subtitle: "Deterministic graph, physics, and dynamic-programming modelling of an unsanctioned operation"
+  version: "0.1.0"
 
-# Consumed by: `infrastructure.publishing.extract_publication_metadata` (in `infrastructure/publishing/metadata.py`)
 authors:
   - name: "Daniel Ari Friedman"
     orcid: "0000-0001-6232-9096"
@@ -21,63 +15,36 @@ authors:
     affiliation: "Active Inference Institute"
     corresponding: true
 
-# Consumed by: `infrastructure.publishing.publish_to_zenodo` (in `infrastructure/publishing/platforms.py`)
+# Local-only tree: no remote, no DOIs. Publication metadata is deliberately
+# minimal; the package is never pushed or deposited.
 publication:
-  doi: "10.5281/zenodo.20417136" # Concept DOI — stable citation; cover page and CITATION.cff
-  version_doi: "10.5281/zenodo.20931934" # Latest Zenodo deposit (updated by publish_project_release.py)
-  version_record: "https://zenodo.org/records/20931934"
-  github_repository: "docxology/licence_to_kill"
-  repository_url: "https://github.com/docxology/licence_to_kill"
-  published_artifacts:
-    ipfs_pinata: "https://gateway.pinata.cloud/ipfs/QmSVZF1MisqWeX1C7vFUhcwCkYvZXBuq5TS9MzLFNJJykS"
-    huggingface_hub: "https://huggingface.co/datasets/ActiveInference/licence_to_kill"
-    osf: "https://osf.io/mcv8j/"
-    pypi: "https://test.pypi.org/project/licence-to-kill/2.5.2/"
-    netlify: "https://6a4440a789b44ad53f3af09b--tranquil-kleicha-0c9203.netlify.app"
-    github_pages: "https://docxology.github.io/licence_to_kill/"
-    software_heritage: "https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/docxology/licence_to_kill"
-  transmission_bookends:
-    enabled: true
-    max_prior_releases: 5
-    show_steganography: true
-  deposit_filename:
-    enabled: true
-    topic: ""  # optional; default = first significant title word
-  journal: "Journal of Optimization Methods"
-  volume: "15"
-  pages: "1-25"
+  github_repository: ""
+  repository_url: ""
+  journal: ""
+  volume: ""
+  pages: ""
   year: "2026"
 
 keywords:
-  - "optimization algorithms"
-  - "gradient descent"
-  - "convergence analysis"
-  - "numerical methods"
-  - "mathematical programming"
+  - "money laundering detection"
+  - "layering"
+  - "integration"
+  - "financial-flow graph"
+  - "vessel forensics"
+  - "gross tonnage"
+  - "marine physics"
+  - "rogue operations"
+  - "escalation"
+  - "blowback"
+  - "dynamic programming"
+  - "deterministic modelling"
   - "reproducible research"
-  - "infrastructure automation"
 
 metadata:
   license: "MIT"
   language: "en"
 
-# Steganography profile for secure_run.sh and transmission bookend summary.
-# Precedence: infrastructure/config/secure_config.yaml < this block.
-steganography:
-  enabled: true
-  overlays_enabled: true
-  barcodes_enabled: true
-  metadata_enabled: true
-  hashing_enabled: true
-  encryption_enabled: false
-  overlay_mode: "text"
-  overlay_text: "CONFIDENTIAL"
-
-# Render format toggles — gate per-renderer in infrastructure/rendering/pipeline.py.
-# Defaults: pdf/html/slides on, docx/epub off. Setting `false` makes the pipeline
-# log `[skip] <format> rendering disabled in config` and emit no artifacts.
-# Consumed by: `infrastructure/rendering/config.py::RenderingConfig.from_project_config`.
-# Documented in `docs/operational/logging/output-design.md`.
+# Render format toggles (kept for parity with sibling film packages).
 render:
   formats:
     pdf: true
@@ -86,42 +53,29 @@ render:
     docx: true
     epub: true
 
-# Consumed by: `infrastructure.llm.LLMClient` (in `infrastructure/llm/core/client.py`)
-# See projects/working/bond/licence_to_kill/docs/ for details
-llm:
-  reviews:
-    # Explicitly enabled for this exemplar to demonstrate AI-aided analysis
-    enabled: true
-    types:
-      - executive_summary
-      - quality_review
-      - methodology_review
-  translations:
-    enabled: true
-    languages:
-      - zh
-
-# Consumed by: `infrastructure/reporting/pipeline_report_model.py` and CI/CD gates
-# ZERO-MOCK TOLERANCE: Any failure blocks manuscript rendering
 testing:
   max_test_failures: 0
   max_infra_test_failures: 0
   max_project_test_failures: 0
 
-# Experimental parameters — read by optimization_analysis.py and generate_manuscript_variables.py
-experiment:
-  # Agency categories:
-  #   Conservative (slow convergence):  α = 0.01, 0.1
-  #   Near-optimal (fast convergence):  α = 0.5, 1.0  (α=1.0 converges in 1 step for H=I)
-  #   Aggressive/Oscillating:           α = 1.5  (|1-α|=0.5, converges with oscillation)
-  #   Divergent:                         α = 2.5  (|1-α|=1.5 > 1, diverges)
-  step_sizes: [0.01, 0.1, 0.5, 1.0, 1.5, 2.5]
-  initial_point: 0.0
-  max_iterations: 1000
-  tolerance: 1.0e-8
-  convergence_tolerance: 1.0e-8
-  quadratic_A: [[1.0]]
-  quadratic_b: [1.0]
-  stability_starting_points: [-50.0, -10.0, -5.0, 0.0, 0.1, 5.0, 10.0, 50.0]
-  stability_step_sizes: [0.01, 0.05, 0.1, 0.2, 0.5, 0.9]
-  benchmark_dimensions: [1, 2, 5, 10, 20, 50]
+# Canonical ROGUE analysis parameters — the single declarative source the
+# core modules and manuscript variables draw from.
+mission:
+  film: "licence_to_kill"
+  codename: "ROGUE"
+  seed: 0
+  laundering:
+    sources: ["S1", "S2", "S3"]
+    sinks: ["B1", "B2", "B3", "B4"]
+    max_depth: 8
+    max_cycles: 50
+    max_paths: 200
+  vessel:
+    profile: "Wavekrest"
+    observed:
+      cargo_mass_t: 900.0
+      declared_displacement_t: 700.0
+  rogue:
+    horizon: 10
+    alert_max: 10
+    actions: ["stealth", "covert", "overt"]

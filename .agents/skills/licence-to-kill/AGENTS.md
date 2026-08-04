@@ -1,21 +1,4 @@
-# licence-to-kill skill — AGENTS.md
+# .agents/skills/licence-to-kill/
 
-Project-scoped skill bundle for the `licence_to_kill` exemplar.
-
-| File | Purpose |
-| --- | --- |
-| [`SKILL.md`](SKILL.md) | The skill itself (frontmatter + canonical sections). |
-| [`AGENTS.md`](AGENTS.md) | This file — folder contract. |
-| [`README.md`](README.md) | Pointer for humans browsing the tree. |
-
-## Audience
-
-Agents that need to:
-
-- Drive the in-repo exemplar end-to-end.
-- Fork this exemplar as a starting scaffold.
-- Verify layer boundaries and thin-orchestrator contracts.
-
-## Cross-refs
-
-- Project root: [`../../..`](../../../).
+Files for the ROGUE mission skill. `SKILL.md` is the skill body with
+YAML frontmatter (name + description). See [`SKILL.md`](SKILL.md).

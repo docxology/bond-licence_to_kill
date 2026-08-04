@@ -1,12 +1,9 @@
-# .agents — AGENTS.md
+# .agents/ — agent-facing catalog
 
-Per-folder technical reference for the project-local agent scaffolding.
+This package carries an in-repo skills catalog under `.agents/skills/`. It
+mirrors the Hermes/agentskills.io convention so the package's own skill is
+discoverable both in-repo and by agent skill managers.
 
-| Subdirectory | Purpose |
-| --- | --- |
-| [`skills/`](skills/AGENTS.md) | Project-local skills. Each ships `SKILL.md` with YAML frontmatter. |
+- `.agents/skills/licence-to-kill/SKILL.md` — the ROGUE mission skill.
 
-## When to update
-
-- A new skill specific to this template lands → add a folder under
-  `skills/<name>/` with `SKILL.md`, `AGENTS.md`, `README.md`.
+See `.agents/README.md` for details.

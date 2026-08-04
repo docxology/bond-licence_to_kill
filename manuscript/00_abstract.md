@@ -1,11 +1,33 @@
-# Abstract {#sec:abstract}
+# Abstract
 
-This paper presents a convergence study of **fixed-step gradient descent** on a convex quadratic, framed as the computational exemplar of the [Research Project Template](https://github.com/docxology/template). The implementation lives in `projects/working/bond/licence_to_kill/src/optimizer.py`; experiments and figures are orchestrated by `projects/working/bond/licence_to_kill/scripts/optimization_analysis.py` and hydrated into the manuscript through `scripts/z_generate_manuscript_variables.py`, so tables and prose track `output/data/optimization_results.csv` after every pipeline run.
+{{BOND_TITLE}} — {{BOND_SUBTITLE}} — is a deterministic, fully-tested
+special-agent mission software package implementing the ROGUE mission from
+the film *Licence to Kill* (1989). It pairs three interoperating domains with
+the frozen BOND-API `MissionProvider` protocol:
 
-We evaluate {{CONFIG_NUM_STEP_SIZES}} step sizes from $\alpha = {{CONFIG_MIN_STEP_SIZE}}$ to $\alpha = {{CONFIG_MAX_STEP_SIZE}}$, spanning conservative, near-optimal, aggressive, and divergent regimes for a unit Hessian model. The build chain exercises template infrastructure end-to-end: scientific helpers (`infrastructure.scientific.stability`, `infrastructure.scientific.benchmarking`), validation, rendering (`infrastructure/rendering/pdf_renderer.py`), and reporting. Accessibility-oriented plotting defaults (colourblind-safe palette, 300 dpi exports) are centralized in `src/figures/` and `src/analysis/`.
+1. a **money-laundering graph** model of the Sanchez cartel's
+   placement–layering–integration flow, with cycle, funnel, and dirty-flow
+   detectors;
+2. **first-principles vessel forensics** of the Wavekrest-class mothership
+   from marine physics (IMO gross tonnage, hydrostatic displacement, fuel
+   endurance, route plausibility);
+3. a **rogue-00 operation risk model** in which an operator whose licence has
+   been revoked must trade mission gain against escalating adversary alert
+   and blowback, solved exactly by finite-horizon dynamic programming.
 
-Contributions are **methodological** and **architectural**. On the methods side, we relate empirical iteration counts and error decay to the scalar contraction factor $\rho(\alpha) = |1-\alpha|$ and document cases where runs hit $N_{\max} = {{CONFIG_MAX_ITERATIONS}}$ before meeting the gradient tolerance. On the architecture side, we demonstrate a zero-mock test suite on project `src/` (see [test_optimizer.py](https://github.com/docxology/template/blob/main/projects/working/bond/licence_to_kill/tests/test_optimizer.py)), automated six-figure analysis, and reproducibility metadata (configuration hash, artifact counts) injected into [@sec:reproducibility].
+On the canonical seeded network (codename {{BOND_CODENAME}}, seed {{SEED}})
+the analysis detects {{LAUNDERING_CYCLES}} money-returning cycle(s) and
+{{LAUNDERING_FUNNELS}} funnels across {{LAUNDERING_NODES}} nodes and
+{{LAUNDERING_EDGES}} directed edges, with {{LAUNDERING_PATHS}} representative
+layering chains enumerated — a composite layering score of {{LAYERING_SCORE}}
+and an integration score of {{INTEGRATION_SCORE}}. The Wavekrest-class
+profile resolves a gross tonnage of {{VESSEL_GROSS_TONNAGE}} and flags
+{{VESSEL_ANOMALIES}} forensic anomalies (score {{VESSEL_ANOMALY_SCORE}}).
+The rogue-00 dynamic program over {{ROGUE_HORIZON}} steps returns an optimal
+expected mission value of {{ROGUE_OPTIMAL_VALUE}} with a
+{{ROGUE_FIRST_ACTION}} opening — evidence that, under a revoked licence,
+unsanctioned escalation is strictly a last resort.
 
-**Results (this configuration):** {{RESULT_NUM_CONVERGED}} of {{CONFIG_NUM_STEP_SIZES}} grid points report `converged=True` in the CSV; non-convergent rows flag either slow progress at small $\alpha$ under the iteration cap or instability when $|1-\alpha| \geq 1$. The analytical minimizer remains $x^\ast = {{RESULT_OPTIMUM_X}}$ with $f(x^\ast) = {{RESULT_OPTIMUM_F}}$ for the configured $(A,b)$.
-
-**Keywords:** {{CONFIG_KEYWORDS}}
+Every result is deterministic and reproducible: fixed seed, no random draws
+in the detectors, no wall-clock in persisted outputs, and ≥ 90% line + branch
+test coverage on the source tree.

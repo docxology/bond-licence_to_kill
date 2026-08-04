@@ -1,5 +1,7 @@
-# Code-centric exemplar: optional monorepo adapters only.
-allow_infrastructure_imports:
-  - src/analysis/_infra.py
-  - src/_runtime.py
-  - src/benchmark_support.py
+# Layer contract — licence_to_kill (pure package)
+#
+# This package is pure: no module imports the monorepo `infrastructure` tree.
+# The domain core and the manuscript/figure layers are all bond-api-free;
+# only the thin protocol adapter (src/licence_to_kill/mission.py) imports
+# bond_api, which is the frozen protocol, not infrastructure.
+allow_infrastructure_imports: []

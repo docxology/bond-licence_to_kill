@@ -1,4 +1,9 @@
-"""Smoke tests for auxiliary pipeline scripts (non-gated)."""
+"""Subprocess smoke tests for the thin ROGUE mission CLIs.
+
+Runs each script with the venv interpreter (``sys.executable``) from the
+package root, asserting exit codes and the artifacts they must produce.
+Real subprocesses only — no mocks.
+"""
 
 from __future__ import annotations
 
@@ -6,65 +11,60 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
 
 
-def test_generate_api_docs_writes_reference() -> None:
-    """generate_api_docs.py is aesthetic-only but should run without error."""
-    script = PROJECT_ROOT / "scripts" / "generate_api_docs.py"
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=PROJECT_ROOT,
+def _run(name: str, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPTS / name), *args],
+        cwd=ROOT,
         capture_output=True,
         text=True,
-        timeout=120,
-        check=False,
     )
-    assert result.returncode == 0, result.stderr or result.stdout
-    api_ref = PROJECT_ROOT / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    body = api_ref.read_text(encoding="utf-8")
-    assert "gradient_descent" in body.lower()
 
 
-def test_preflight_script_emits_diagnostics() -> None:
-    """00_preflight.py is aesthetic-only; exit 0 when no render mermaid, exit 1 when chrome absent."""
-    script = PROJECT_ROOT / "scripts" / "00_preflight.py"
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    assert result.returncode in (0, 1), result.stderr or result.stdout
-    combined = f"{result.stdout}\n{result.stderr}".lower()
-    if result.returncode == 1:
-        assert any(token in combined for token in ("preflight", "puppeteer", "mmdc"))
+def test_preflight_ok():
+    result = _run("00_preflight.py")
+    assert result.returncode == 0, result.stderr
+    assert "all checks passed" in result.stdout
 
 
-def test_run_api_doc_generation_continues_when_glossary_index_fails(tmp_path: Path) -> None:
-    """Glossary index failure is logged; static api_reference.md still written."""
-    repo_root = PROJECT_ROOT.parent.parent
-    src_path = str(PROJECT_ROOT / "src")
-    for path in (str(repo_root), src_path):
-        if path not in sys.path:
-            sys.path.insert(0, path)
+def test_brief_prints_tagged_json():
+    result = _run("mission_brief.py")
+    assert result.returncode == 0, result.stderr
+    assert "__bond_type__" in result.stdout
+    assert "MissionBrief" in result.stdout and "ROGUE" in result.stdout
 
-    scripts_dir = str(PROJECT_ROOT / "scripts")
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-    import generate_api_docs as api_docs_mod
 
-    def _fail(_src: str) -> list:
-        raise ValueError("glossary index unavailable")
+def test_recon_prints_report():
+    result = _run("mission_recon.py")
+    assert result.returncode == 0, result.stderr
+    assert "ReconReport" in result.stdout
 
-    project_root = tmp_path
-    (project_root / "src").mkdir()
-    result = api_docs_mod.run_api_doc_generation(project_root, api_index_builder=_fail)
-    assert result is not None
-    api_ref = project_root / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    assert result["glossary"] is None
-    assert result["api_reference"] == str(api_ref)
+
+def test_plan_prints_plan():
+    result = _run("mission_plan.py")
+    assert result.returncode == 0, result.stderr
+    assert "MissionPlan" in result.stdout
+
+
+def test_execute_writes_outcome():
+    result = _run("mission_execute.py")
+    assert result.returncode == 0, result.stderr
+    assert "success=True" in result.stdout
+    assert (ROOT / "output" / "data" / "mission_outcome.json").exists()
+
+
+def test_debrief_prints_full_flow():
+    result = _run("mission_debrief.py")
+    assert result.returncode == 0, result.stderr
+    assert "Debrief" in result.stdout
+
+
+def test_z_generate_writes_artifacts():
+    result = _run("z_generate_manuscript_variables.py")
+    assert result.returncode == 0, result.stderr
+    assert (ROOT / "output" / "data" / "mission_results.json").exists()
+    assert (ROOT / "output" / "data" / "manuscript_variables.json").exists()
+    assert (ROOT / "output" / "figures" / "laundering_network.png").exists()

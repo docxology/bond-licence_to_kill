@@ -1,57 +1,24 @@
-# Conclusion {#sec:conclusion}
+# Conclusion
 
-This study demonstrated a complete computational research pipeline from algorithmic implementation through uncompromising testing, automated analysis, and zero-intervention manuscript generation. Ultimately, it validates the proposition that high-quality mathematical research software benefits from production-tier engineering practices.
+{{BOND_TITLE}} demonstrates that a special-agent mission package can be
+entirely deterministic and still analytically rich. The three domains — the
+Sanchez money-laundering graph, the Wavekrest-class vessel forensics, and the
+rogue-00 risk model — each carry a real, testable algorithm, and together
+they render the ROGUE campaign's three field questions answerable in
+closed form:
 
-## Exemplar Project Achievements
+- layering and integration are *measurable* (layering score
+  {{LAYERING_SCORE}}, integration score {{INTEGRATION_SCORE}});
+- covert cargo is betrayed by marine physics ({{VESSEL_ANOMALIES}} anomalies
+  flagged on the canonical mothership);
+- unsanctioned operations have an exact optimal policy — and that policy
+  begins with {{ROGUE_FIRST_ACTION}}, not with a frontal assault
+  (optimal value {{ROGUE_OPTIMAL_VALUE}}).
 
-Operating as the representative exemplar for the Generalized Research Template methodology, the project successfully deployed the three foundational pillars:
-
-1. **`infrastructure` Ecosystem**: Fully leveraged the measured infrastructure package cluster to handle scientific benchmarking, rendering, prose review, literature search, BibTeX validation, and reporting.
-2. **`tests` Integrity**: Established absolute logical hermeticity through a comprehensive integration and infrastructure validation suite operating continuously.
-3. **`docs` Knowledge Operations**: Adhered structurally to the RASP methodology, producing verified, accessible output spanning from documentation indices to the final LLM-assisted publication configurations.
-
-## Technical Contributions
-
-### Test Coverage Strategy
-
-The hallmark of this implementation is the test matrix:
-
-- Comprehensive tests traversing execution pipelines, integration flows, and algorithmic bounds.
-- Strict enforcement of zero-mock policies guaranteeing real execution dynamics.
-- CI/CD validation gates requiring ≥90% statement coverage before progression.
-
-### Infrastructure-Backed Capabilities
-
-- **Analytical Automation**: `infrastructure.core.progress` (`ProgressBar`, `SubStageProgress`) executing deterministic optimization experiments.
-- **Reporting & Integrity**: `infrastructure.reporting.executive_reporter` and `infrastructure.validation.output.validator` assuring CSV/JSON configurations conform.
-- **Visual Cryptography**: Publication-ready graphics compiled by `infrastructure.rendering.pdf_renderer.py` using metadata from `projects/working/bond/licence_to_kill/manuscript/config.yaml`, automatically linked via the LaTeX configuration in `projects/working/bond/licence_to_kill/manuscript/preamble.md`.
-
-## Research Pipeline Validation
-
-The project validates the research template's ability to handle operations seamlessly across disciplines:
-
-- **Mathematical fidelity**: Zero-mock gradients and bounds checks solving problems dynamically.
-- **Reporting architecture**: Cross-project and local metrics compiled rapidly into dashboards.
-- **Multi-format scaling**: Effortless conversion from semantic Markdown files to LaTeX-structured PDFs.
-- **Intelligent Verification**: LLM integration analyzing output completeness contextually without degrading hermetic logic.
-
-## Key Insights
-
-1. **Mathematical Accuracy Requires Testing Fidelity**: Real execution data, unpolluted by mocks, exposes actual computational limits fast.
-2. **Infrastructure Abstraction**: By delegating tracking to the underlying `infrastructure`, scientists remain hyper-focused on their `algorithm`.
-3. **Automated Consistency**: Re-compiling the pipeline enforces an immutable bond between algorithm version and final visual reporting.
-
-## Future Extensions
-
-This foundation could be extended to:
-
-- **Advanced algorithms**: Newton methods, quasi-Newton approaches
-- **Constrained optimization**: Handling inequality constraints
-- **Stochastic methods**: Mini-batch and online learning variants, including adaptive optimization algorithms such as Adam [@kingma2014adam]
-- **Agentic Generation Systems**: Extending validation tools built over `infrastructure.validation` to analyze novel model interactions automatically.
-
-## Final Assessment
-
-This work demonstrates that the research template supports projects spanning the full spectrum—from prose-focused manuscripts to fully-tested algorithmic ecosystems. The optimization exemplar ties every quantitative claim to `output/data/` artifacts and enforces a zero-mock test policy on `projects/working/bond/licence_to_kill/src/` with coverage gates documented in the root `pyproject.toml`.
-
-The pipeline produced the figures referenced in [@sec:results], wrote `optimization_results.csv`, and rendered this markdown (`projects/working/bond/licence_to_kill/manuscript/04_conclusion.md`) together with `config.yaml` into PDF through `infrastructure.rendering`. The `licence_to_kill` tree remains the canonical reference for how algorithm code, analysis scripts, variable injection, and manuscript stay synchronized across rebuilds.
+Because the entire pipeline runs on a fixed seed ({{SEED}}) with no random
+draws in the detectors and no wall-clock in persisted outputs, every figure
+and every table in this manuscript is reproducible byte-for-byte. As a
+BOND package, `licence_to_kill` exposes all of this through the frozen
+`bond-api` `MissionProvider` contract, so the fleet orchestrator can discover
+and drive it as a first-class citizen of the 27-film suite. The revoked
+licence changes the operator's tactics — never the rigour of the analysis.

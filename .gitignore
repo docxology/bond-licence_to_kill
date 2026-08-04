@@ -4,9 +4,16 @@
 __pycache__/
 *.pyc
 .benchmarks/
+.ruff_cache/
+.mypy_cache/
 
 # Egg-info from local installs (any location — guards against renamed-fork drift).
 **/*.egg-info/
 
 # Project-local virtualenvs (root .venv is shared)
 .venv/
+
+# Regenerable analysis/rendering artifacts (git-clean after gate runs).
+output/
+rendered/
+htmlcov/

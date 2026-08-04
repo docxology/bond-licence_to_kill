@@ -1,26 +1,66 @@
-#!/usr/bin/env python3
-"""Pre-flight check for manuscript rendering prerequisites."""
+"""ROGUE mission preflight — verify the package is gate-ready.
+
+Checks (in order): bond-api protocol surface loads, a MissionProvider can be
+constructed and satisfies the protocol, the film registers its expected
+gadgets, and the pure domain core imports standalone. Prints each check and
+exits 0 only when every check passes (argparse-style: failures exit 1).
+"""
 
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(REPO_ROOT))
+from _bootstrap import PROVIDER
+from bond_api.protocol import MissionProvider as ProtocolType, protocol_surface
 
-from infrastructure.rendering.preflight import run_manuscript_preflight  # noqa: E402
+_EXPECTED_GADGETS = {"laundering_analyzer", "vessel_forensics", "rogue_risk_model"}
 
 
 def main() -> int:
-    """CLI entry point."""
-    manuscript_dir = Path(__file__).resolve().parent.parent / "manuscript"
-    ok, message = run_manuscript_preflight(manuscript_dir)
-    if ok:
-        return 0
-    sys.stderr.write(message)
-    return 1
+    issues: list[str] = []
+    checks: list[str] = []
+
+    try:
+        surface = protocol_surface()
+        checks.append(
+            f"ok  bond-api protocol_surface: identity={surface['identity']} dataclasses={len(surface['dataclasses'])}"
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        issues.append(f"fail bond-api protocol_surface: {exc}")
+
+    if isinstance(PROVIDER, ProtocolType):
+        checks.append(f"ok  provider satisfies MissionProvider protocol (film={PROVIDER.film})")
+    else:
+        issues.append("fail provider does not satisfy the MissionProvider protocol")
+
+    brief = PROVIDER.brief()
+    checks.append(f"ok  brief: codename={brief.codename} objectives={len(brief.objectives)}")
+
+    from licence_to_kill.mission import GADGET_REGISTRY
+
+    registered = set(GADGET_REGISTRY.gadgets_for("licence_to_kill"))
+    missing = _EXPECTED_GADGETS - registered
+    if missing:
+        issues.append(f"fail missing gadgets: {sorted(missing)}")
+    else:
+        checks.append(f"ok  gadgets registered: {len(registered)}")
+
+    # Pure domain core is importable even without bond-api wired in.
+    from licence_to_kill.laundering_graph import build_sanchez_network  # noqa: F401
+    from licence_to_kill.vessel_forensics import WAVEKREST_CLASS  # noqa: F401
+    from licence_to_kill.rogue_ops import build_rogue_model  # noqa: F401
+
+    checks.append("ok  pure domain core imports standalone")
+
+    for line in checks:
+        print(line)
+    if issues:
+        for line in issues:
+            print(line, file=sys.stderr)
+        return 1
+    print("ROGUE preflight: all checks passed.")
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

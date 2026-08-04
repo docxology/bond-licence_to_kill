@@ -13,19 +13,14 @@
       "givenName": "Daniel Ari"
     }
   ],
-  "codeRepository": "https://github.com/docxology/licence_to_kill",
-  "dateModified": "2026-07-10",
-  "identifier": "10.5281/zenodo.20417136",
   "keywords": [
-    "optimization algorithms",
-    "gradient descent",
-    "convergence analysis",
-    "numerical methods",
-    "mathematical programming",
-    "reproducible research",
-    "infrastructure automation"
+    "money laundering detection", "layering", "integration", "vessel forensics",
+    "gross tonnage", "rogue operations", "escalation", "blowback",
+    "dynamic programming", "deterministic modelling", "reproducible research"
   ],
   "license": "https://spdx.org/licenses/MIT",
-  "name": "Convergence Analysis of Gradient Descent Optimization",
-  "version": "2.5.2"
+  "name": "Licence to Kill: ROGUE — Special-Agent Mission Software",
+  "version": "0.1.0",
+  "programmingLanguage": "Python",
+  "dateModified": "2026-08-04"
 }

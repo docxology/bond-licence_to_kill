@@ -1,22 +1,23 @@
-authors:
-- affiliation: Active Inference Institute
-  family-names: Friedman
-  given-names: Daniel Ari
-  orcid: 0000-0001-6232-9096
 cff-version: 1.2.0
-date-released: '2026-07-10'
-doi: 10.5281/zenodo.20417136
-keywords:
-- optimization algorithms
-- gradient descent
-- convergence analysis
-- numerical methods
-- mathematical programming
-- reproducible research
-- infrastructure automation
-license: MIT
 message: If you use this software, please cite it using the metadata from this file.
-repository-code: https://github.com/docxology/licence_to_kill
-title: Convergence Analysis of Gradient Descent Optimization
+title: "Licence to Kill: ROGUE — Special-Agent Mission Software"
+authors:
+  - family-names: Friedman
+    given-names: Daniel Ari
+    orcid: 0000-0001-6232-9096
+    affiliation: Active Inference Institute
+keywords:
+  - money laundering detection
+  - layering
+  - integration
+  - vessel forensics
+  - gross tonnage
+  - rogue operations
+  - escalation
+  - blowback
+  - dynamic programming
+  - deterministic modelling
+license: MIT
+version: 0.1.0
+date-released: '2026-08-04'
 type: software
-version: 2.5.2

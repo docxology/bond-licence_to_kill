@@ -1,83 +1,78 @@
-# Methodology {#sec:methodology}
+# Methodology
 
-This section describes the implementation methodology, explicitly detailing how the optimization algorithms are constructed, validated, and analyzed using the Generalized Research Template's `infrastructure` and `tests` ecosystems.
+This section specifies the three deterministic algorithms that constitute
+the ROGUE analytical core. Deep familiarity with each module's source is the
+intended reader path: `src/licence_to_kill/laundering_graph.py`,
+`src/licence_to_kill/vessel_forensics.py`, and
+`src/licence_to_kill/rogue_ops.py`.
 
-## Algorithm Implementation
+## 2.1 Money-laundering graph
 
-### Gradient Descent Algorithm
+A laundering network is a directed, weighted graph
+$G = (V, E)$ whose nodes $V$ are financial entities (collectors, shell
+fronts, seafood/currency fronts, banks, legitimate exporters) and whose
+directed edges $E$ carry a positive value flow. Dirty value is *placed* at
+source nodes, moves through the graph, and *integrates* at sink nodes.
 
-The core algorithm implements the iterative procedure for unconstrained optimization. The [`optimizer` module](https://github.com/docxology/template/blob/main/projects/working/bond/licence_to_kill/src/optimizer.py) uses the standard-library `logging` logger for optional verbose diagnostics; the [analysis orchestrator](https://github.com/docxology/template/blob/main/projects/working/bond/licence_to_kill/scripts/optimization_analysis.py) uses `infrastructure.core.logging.utils.get_logger`. Tests run under the hermetic boundaries defined in the [test configuration](https://github.com/docxology/template/blob/main/projects/working/bond/licence_to_kill/tests/conftest.py).
+**Cycle detection.** Money-returning loops are the signature of layering.
+We enumerate elementary cycles by depth-limited depth-first search, rotating
+each discovered cycle to a canonical form (start at its lexicographically
+smallest node) so duplicates collapse (`TransactionGraph.find_cycles`).
 
-**Algorithm — Gradient Descent (implemented in the [optimizer module](https://github.com/docxology/template/blob/main/projects/working/bond/licence_to_kill/src/optimizer.py#L87-L173))**
+**Funnel analysis.** A node is a *collector* when it fans in from ≥ 2 unique
+sources with a degree-imbalance ratio
+$\rho = (\text{sources}+1)/(\text{targets}+1) \geq \tau$, and a
+*distributor* when it fans out to ≥ 2 unique targets with $\rho \leq 1/\tau$
+($\tau = 1.5$). Trivial linear pass-throughs are excluded.
 
-> **Input:** Initial point $x_0$, step size $\alpha$, tolerance $\epsilon$, max iterations $N_{\max}$
->
-> 1. Initialize $k \leftarrow 0$
-> 2. **While** $k < N_{\max}$ **do:**
->    - Compute gradient $g_k = \nabla f(x_k)$
->    - **If** $\|g_k\|_2 < \epsilon$ **then return** $x_k$ *(converged)*
->    - Update: $x_{k+1} \leftarrow x_k - \alpha \cdot g_k$
->    - $k \leftarrow k + 1$
-> 3. **Return** $x_k$ *(max iterations reached)*
+**Dirty-flow propagation.** Dirty mass is conservatively re-distributed
+along edges in proportion to edge weight; a node with no out-edges retains
+its mass (it is a sink). Iteration converges to the pooling dirty
+distribution (`TransactionGraph.propagate_dirty`). From it we derive the
+per-sink dirty fraction
+$d_i = \text{dirty}_i / \text{in\_amount}_i$, the integration score
+$1 - \bar{d}$ (how diluted the placed value has become), and the Shannon
+entropy of the dirty distribution across sinks (how dispersed it is).
 
-## Infrastructure Integration
+**Composite layering score.** Three normalised components — cycles,
+layering-chain depth, and funnel imbalance — are blended
+$0.4\cdot C_\text{cyc} + 0.3\cdot C_\text{depth} + 0.3\cdot C_\text{funnel}$
+into a single score in $[0, 1]$ (`analyze_laundering`).
 
-The methodology explicitly bridges theoretical mathematics with production-grade validation through the `infrastructure.scientific` module.
+## 2.2 Vessel forensics
 
-### Numerical Stability Analysis
+For a declared `VesselProfile` of the Wavekrest-class mothership we compute,
+from first principles:
 
-Rather than writing ad-hoc validation code, the project imports `infrastructure.scientific.stability.check_numerical_stability`. This utility subjects the objective function to a barrage of extreme inputs (NaN, Inf, $\pm 10^{10}$) to calculate a formalized stability score. If this score degrades, the [analysis orchestrator](https://github.com/docxology/template/blob/main/scripts/pipeline/stage_02_analysis.py) execution deliberately aborts, ensuring the methodology cannot enter unrecoverable states.
+- **Enclosed hull volume** $V = L \cdot B \cdot D \cdot C_b$.
+- **Gross tonnage** (IMO 1969): $\mathrm{GT} = K_1 V$ with
+  $K_1 = 0.2 + 0.02 \log_{10} V$.
+- **Hydrostatic displacement** $\Delta = \rho_\text{sw} \cdot L \cdot B \cdot
+  \text{draft} \cdot C_b$, $\rho_\text{sw} = 1.025\ \text{t/m}^3$.
+- **Fuel endurance**: at speed $v$ the required shaft power follows the
+  cubic law $P(v) = P_\text{max}(v/v_\text{max})^3$, burning
+  $P(v) \cdot \text{SFC}$ kg/h (SFC ≈ 0.195 kg/kWh), giving range
+  $\text{nm} = (\text{fuel mass}/\text{burn rate}) \cdot v$.
 
-### Performance Benchmarking
+The forensic scan (`anomaly_scan`) then flags physical implausibilities: a
+cargo bulk-density above the fish ceiling (~1.4 t/m³), a declared
+displacement more than 15 % from the draft-predicted value (hidden ballast),
+a route whose required average speed exceeds capability, a voyage beyond the
+fuel endowment, or an over-powered hull.
 
-The analysis exercises [`infrastructure.scientific.benchmarking.benchmark_function`](https://github.com/docxology/template/blob/main/infrastructure/scientific/benchmarking.py) as a runtime diagnostic. Host-dependent timing and memory observations are logged but excluded from tracked evidence. The canonical report records fixed inputs and exact objective values, while the dimensional figure reports deterministic convergence iterations and the proxy $d \times \text{iterations}$; neither surface claims that one host run proves an asymptotic bound.
+## 2.3 Rogue-00 risk model
 
-## Convergence Analysis
+A revoked licence means the operator faces a finite-horizon control problem.
+State is $(a, e)$: adversary *alert* and cumulative *exposure*. Each step the
+operator picks an intensity $i \in \{\text{stealth}, \text{covert},
+\text{overt}\}$ with gain $g_i$ and visibility $v_i$; alert rises
+$a \leftarrow \min(a_\text{max}, a + v_i)$, exposure rises by one step, and
+*blowback* (a retaliatory strike destroying the period's value) arrives with
+logistic hazard
+$p = \sigma(\beta_0 + \beta_a a + \beta_e e)$.
 
-For quadratic functions $f(x) = \frac{1}{2}x^T A x - b^T x$ where $A$ is positive definite, the convergence factor becomes [@bertsekas1999nonlinear]:
-
-\begin{equation}
-\label{eq:convergence_factor}
-\rho = \frac{|\lambda_{\max} - \alpha\lambda_{\min}|}{|\lambda_{\min} + \alpha\lambda_{\max}|}
-\end{equation}
-
-Optimal convergence occurs when $\alpha = \frac{2}{\lambda_{\min} + \lambda_{\max}}$, yielding $\rho = \frac{\kappa - 1}{\kappa + 1}$.
-
-## Experimental Setup
-
-### Step Size Analysis
-
-Step sizes are not chosen ad hoc in the manuscript: they are read from `experiment.step_sizes` in `manuscript/config.yaml` and passed through `run_convergence_experiment()` in `src/analysis/` (entry: `scripts/optimization_analysis.py`). The active grid for this build is:
-
-{{CONFIG_STEP_SIZES_BULLETS}}
-
-Labels follow the same agency taxonomy used for plot colours (`_agency_category` in the analysis script): **conservative** (small $\alpha$, slow but stable on $H=I$), **near-optimal** (including $\alpha=1$ where the method reaches $x^\ast$ in one step for this quadratic), **aggressive** ($1 < \alpha < 2$, still linearly contracting in $|x-x^\ast|$ but oscillatory in sign), and **divergent** ($|1-\alpha| \geq 1$).
-
-### Zero-Mock Testing Methodology
-
-The most critical aspect of the project's methodology is its validation framework. The project is governed by a strict Zero-Mock testing policy, evaluated actively by executing `uv run pytest projects/working/bond/licence_to_kill/tests/` during the infrastructure build phase.
-
-1. **Project tests**: [`projects/working/bond/licence_to_kill/tests/test_optimizer.py`](../tests/test_optimizer.py) exercises `src/optimizer.py` (typical, edge, boundary, and pathological inputs including NaN/Inf and zero gradients) and, when infrastructure imports succeed, call into `optimization_analysis.py` helpers—without mocks. Suite size: [`docs/_generated/COUNTS.md`](../../../../docs/_generated/COUNTS.md).
-2. **Infrastructure validation**: The repository-level `tests/infra_tests/` suite validates shared template modules (e.g. pipeline and discovery helpers) independently of this project’s manuscript.
-3. **Coverage Gates**: The [GitHub Actions CI workflow](https://github.com/docxology/template/blob/main/.github/workflows/ci.yml) enforces a mandatory ≥90% statement coverage gate on `projects/working/bond/licence_to_kill/src/` prior to treating the project as build-green.
-
-### Stopping rule and reporting
-
-`gradient_descent()` terminates when $\|\nabla f(x_k)\|$ falls below `experiment.tolerance`, when $k$ reaches `experiment.max_iterations`, or when an objective, gradient, or update becomes non-finite. The boolean `converged` plus `termination_reason` in exported CSV rows distinguish these outcomes. A non-finite candidate is rejected before it enters `objective_history`, preserving the last finite state for reproducible reporting. Downstream, `scripts/z_generate_manuscript_variables.py` aggregates the CSV into `RESULT_*` placeholders so tables and prose cannot drift from the last analysis run.
-
-### Figure generation contract
-
-Each figure in `03_results.md` maps to a generator in `src/figures/` (`generate_convergence_plot`, `generate_step_size_sensitivity_plot`, `generate_convergence_rate_plot`, `generate_complexity_visualization`, `generate_stability_visualization`, `generate_benchmark_visualization`), orchestrated by `src/analysis/` / `scripts/optimization_analysis.py`. Captions in the markdown intentionally name the function and the key parameters (tolerance lines, grids, dimensions) so reviewers can navigate from PDF to code without inferring hidden defaults.
-
-The same generator writes explicit `metadata.alt_text` for every registered
-figure. The alt text states what the visual encodes and preserves the boundary
-between deterministic observations and host-dependent diagnostics. Run the
-opt-in publication migration gate with
-`--require-figure-accessibility` to verify that every referenced figure has
-this metadata before promotion.
-
-## Analysis Pipeline & LaTeX Integration
-
-The automated analysis script leverages [`infrastructure.core.progress`](https://github.com/docxology/template/blob/main/infrastructure/core/progress.py) (`ProgressBar`, `SubStageProgress`) to orchestrate experiments, collect convergence trajectories, and generate publication-quality visualizations seamlessly.
-
-The research template supports advanced LaTeX customization through the `preamble.md` configuration. This is ingested directly by `infrastructure.rendering.latex_utils.py` and `pdf_renderer.py`, automatically linking compiled PGF plots and BibTeX citations. This automated approach ensures an unbreakable chain of custody from raw algorithmic execution to the final rendered manuscript.
+We solve exactly by backward induction over the discrete
+$(\text{step}, a, e)$ lattice (`solve_optimal_policy`), producing the
+expected optimal value, the first-period action, and the escalation curve
+that follows. No randomness is involved — the result is reproducible to the
+last float.

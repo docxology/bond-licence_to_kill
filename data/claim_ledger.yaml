@@ -1,57 +1,23 @@
+# Sourced numeric/algorithmic claims registered for evidence validation.
+# Each row names the claim, its source, and where it is used.
 claims:
-  - claim_id: figure-export-dpi
-    kind: number
-    value: 300
-    source: projects/working/bond/licence_to_kill/src/viz_config.py plotting defaults (dpi)
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/convergence_plot.png
-  - claim_id: step-size-sensitivity-cap
-    kind: number
-    value: 500
-    source: projects/working/bond/licence_to_kill/src/sweeps.py sensitivity_sweep max_iter cap
-    source_tier: generated_metric
-    freshness: active
-    artifact_path: output/figures/step_size_sensitivity.png
-  - claim_id: stability-log-lower
-    kind: number
-    value: -6
-    source: projects/working/bond/licence_to_kill/src/figures/scientific_stability.py stability visualization caption
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/stability_analysis.png
-  - claim_id: solution-relative-error-exponent
-    kind: number
-    value: -4
-    source: projects/working/bond/licence_to_kill/manuscript/03_results.md stated precision threshold
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: manuscript/03_results.md
-  - claim_id: stability-log-upper
-    kind: number
-    value: -9
-    source: projects/working/bond/licence_to_kill/src/figures/scientific_stability.py stability visualization caption
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/stability_analysis.png
-  - claim_id: benchmark-tolerance-exponent
-    kind: number
-    value: -10
-    source: projects/working/bond/licence_to_kill/scripts/optimization_analysis.py dimensional benchmark tolerance
-    source_tier: project_source
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
-  - claim_id: benchmark-min-iterations
-    kind: number
-    value: 219
-    source: projects/working/bond/licence_to_kill/manuscript/03_results.md benchmark caption
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
-  - claim_id: benchmark-max-iterations
-    kind: number
-    value: 238
-    source: projects/working/bond/licence_to_kill/manuscript/03_results.md benchmark caption
-    source_tier: manuscript_claim
-    freshness: active
-    artifact_path: output/figures/performance_benchmark.png
+  - id: imo-gross-tonnage
+    source: IMO 1969 Convention on Tonnage Measurement
+    value: "GT = (0.2 + 0.02 * log10 V) * V"
+    used_in: vessel_forensics.gross_tonnage
+  - id: seawater-density
+    source: standard seawater density
+    value: "1.025 t/m^3"
+    used_in: vessel_forensics.displacement_from_draft
+  - id: diesel-sfc
+    source: marine diesel brake specific fuel consumption
+    value: "0.195 kg/kWh"
+    used_in: vessel_forensics.fuel_consumption_kgph
+  - id: df-cycle-enumeration
+    source: Tarjan 1972 depth-first search
+    value: "elementary-cycle enumeration by depth-limited DFS"
+    used_in: laundering_graph.find_cycles
+  - id: backward-induction
+    source: Bellman 1957 dynamic programming
+    value: "exact finite-horizon optimal policy via backward induction"
+    used_in: rogue_ops.solve_optimal_policy

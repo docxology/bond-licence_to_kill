@@ -6,25 +6,14 @@
       "orcid": "0000-0001-6232-9096"
     }
   ],
-  "description": "Source code for Convergence Analysis of Gradient Descent Optimization (2026).",
+  "description": "Source code for licence_to_kill (ROGUE): deterministic special-agent mission software for money-laundering-graph analysis, vessel-forensic analysis, and rogue-operation risk modelling.",
   "keywords": [
-    "optimization algorithms",
-    "gradient descent",
-    "convergence analysis",
-    "numerical methods",
-    "mathematical programming",
-    "reproducible research",
-    "infrastructure automation"
+    "money laundering detection", "layering", "integration", "vessel forensics",
+    "gross tonnage", "rogue operations", "escalation", "blowback",
+    "dynamic programming", "deterministic modelling", "reproducible research"
   ],
   "license": "MIT",
-  "related_identifiers": [
-    {
-      "identifier": "10.5281/zenodo.20417136",
-      "relation": "isVersionOf",
-      "scheme": "doi"
-    }
-  ],
-  "title": "Convergence Analysis of Gradient Descent Optimization",
+  "title": "Licence to Kill: ROGUE — Special-Agent Mission Software",
   "upload_type": "software",
-  "version": "2.5.2"
+  "version": "0.1.0"
 }

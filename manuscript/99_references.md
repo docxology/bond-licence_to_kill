@@ -1,10 +1,11 @@
-# References {#sec:references}
+# References
 
-Bibliography lives in [`manuscript/references.bib`](references.bib) and is read by Pandoc during PDF render. The build pipeline invokes Pandoc with `--natbib`, so every `[@key]` citation in the manuscript is rewritten to the appropriate `\cite{}`/`\citep{}`/`\citet{}` LaTeX command and resolved against the bib file.
+<!-- References are resolved by Pandoc from `references.bib` via citation
+keys (e.g. [@tarjan1972]). This section documents the bibliography; the
+rendered document typesets the full entries. -->
 
-To validate that `references.bib` is syntactically clean and contains the required fields per entry type:
-
-```bash
-uv run python -m infrastructure.reference.citation.cli validate \
-    projects/working/bond/licence_to_kill/manuscript/references.bib --strict
-```
+- @tarjan1972 — Depth-first search and linear graph algorithms.
+- @imo1969 — International Convention on Tonnage Measurement of Ships.
+- @bellman1957 — Dynamic Programming.
+- @licence1989 — Licence to Kill (1989), directed by John Glen.
+- @fatf2020 — Financial Action Task Force money-laundering typologies.

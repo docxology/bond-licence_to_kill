@@ -1,52 +1,67 @@
-#!/usr/bin/env python3
-"""Thin orchestrator: generate and inject manuscript variables.
+"""ROGUE manuscript variable hydration + figure generation (runs last).
 
-Reads experiment config and analysis outputs, writes
-``output/data/manuscript_variables.json``, and substitutes
-``{{TOKEN}}`` markers in manuscript sections into
-``output/manuscript/`` for PDF rendering.
+Executes the deterministic mission, persists the canonical analysis outputs
+(``output/data/mission_results.json``), writes the ``{{TOKEN}}`` mapping
+(``output/data/manuscript_variables.json``), renders every ``manuscript/NN_*.md``
+section into ``output/manuscript/`` with tokens substituted, and generates the
+ROGUE figures into ``output/figures/``.
 
-All computation lives in ``src/manuscript_variables``;
-all injection lives in
-``infrastructure.rendering.manuscript_injection``.
-
-Exit codes:
-    0   variables written and injected successfully
-    1   unexpected error
+Strict by default: any unresolved ``{{...}}`` placeholder in a numbered
+section fails the run (exit 1). ``--allow-draft`` relaxes the resolve check.
 """
 
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
+import json
+import re
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_PROJECT_ROOT))
-sys.path.insert(0, str(_PROJECT_ROOT.parents[2]))
+from _bootstrap import OUTPUT, PROVIDER, ROOT
+from licence_to_kill.figures.plots import generate_figures
+from licence_to_kill.manuscript_variables import generate_variables, substitute
+
+_UNRESOLVED = re.compile(r"\{\{[A-Z_][A-Z0-9_]*\}\}")
 
 
 def main() -> int:
-    """CLI entry point."""
-    parser = argparse.ArgumentParser(description="Generate manuscript variables for licence_to_kill")
-    parser.add_argument(
-        "--allow-draft",
-        action="store_true",
-        help="Allow N/A fallbacks when analysis outputs are missing (non-pipeline draft mode)",
-    )
+    parser = argparse.ArgumentParser(description="Hydrate ROGUE manuscript variables and figures")
+    parser.add_argument("--allow-draft", action="store_true", help="allow unresolved placeholders")
     args = parser.parse_args()
 
-    from infrastructure.rendering.manuscript_injection import write_resolved_manuscript_tree
-    from src.manuscript_variables import generate_variables, save_variables
+    outcome = PROVIDER.execute(PROVIDER.plan(PROVIDER.brief()))
 
-    variables = generate_variables(
-        _PROJECT_ROOT,
-        require_analysis_outputs=not args.allow_draft,
-    )
-    out_path = _PROJECT_ROOT / "output" / "data" / "manuscript_variables.json"
-    save_variables(variables, out_path)
-    write_resolved_manuscript_tree(_PROJECT_ROOT, variables)
-    print(str(out_path))
+    (OUTPUT / "data").mkdir(parents=True, exist_ok=True)
+    results_path = OUTPUT / "data" / "mission_results.json"
+    results_path.write_text(json.dumps(outcome.results, sort_keys=True, indent=2), encoding="utf-8")
+
+    tokens = generate_variables()
+    variables_path = OUTPUT / "data" / "manuscript_variables.json"
+    variables_path.write_text(json.dumps(tokens, sort_keys=True, indent=2), encoding="utf-8")
+
+    manuscript_dir = ROOT / "manuscript"
+    rendered_dir = OUTPUT / "manuscript"
+    rendered_dir.mkdir(parents=True, exist_ok=True)
+    unresolved: list[str] = []
+    for section in sorted(manuscript_dir.glob("[0-9]*.md")):
+        text = section.read_text(encoding="utf-8")
+        resolved = substitute(text, tokens)
+        leftovers = set(_UNRESOLVED.findall(resolved))
+        if leftovers:
+            unresolved.append(f"{section.name}: {sorted(leftovers)}")
+        (rendered_dir / section.name).write_text(resolved, encoding="utf-8")
+
+    figures = generate_figures(OUTPUT / "figures")
+
+    if unresolved and not args.allow_draft:
+        for entry in unresolved:
+            print(f"UNRESOLVED {entry}", flush=True)
+        return 1
+    for entry in unresolved:
+        print(f"warn (draft) {entry}", flush=True)
+
+    print(f"ROGUE variables: {len(tokens)} tokens -> {variables_path.relative_to(ROOT)}")
+    print(f"ROGUE results:   {results_path.relative_to(ROOT)}")
+    print(f"ROGUE figures:   {', '.join(str(p.name) for p in figures.values())}")
     return 0
 
 

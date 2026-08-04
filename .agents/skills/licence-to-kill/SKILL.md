@@ -1,53 +1,52 @@
 ---
 name: licence-to-kill
-description: Code-centric optimization research exemplar — gradient descent, convergence analysis, automated figures, dashboard, and publication-quality PDF.
-version: 0.1.0
-author: docxology
-license: MIT
-tags: [exemplar, code, optimization, thin-orchestrator]
+description: Use when working on the PROJECT BOND licence_to_kill (ROGUE) film package — domain core, bond-api MissionProvider, manuscript, or gates.
 ---
 
 # licence-to-kill
 
-Project-scoped skill for the in-repo exemplar at
-`projects/working/bond/licence_to_kill/`. Load this when working inside the project.
+PROJECT BOND film package for *Licence to Kill* (1989), mission codename
+**ROGUE**: deterministic special-agent mission software.
 
-## When to Use
+## When to use
 
-- Working inside the `licence_to_kill` exemplar — running scripts, editing source,
-  or regenerating outputs.
-- Forking this exemplar as the starting scaffold for a new research project.
-- Validating that the exemplar's contracts (thin-orchestrator, layer boundaries,
-  no-mocks testing) still hold after changes.
+- Running/editing the ROGUE domain core (laundering graph, vessel
+  forensics, rogue DP)
+- Wiring or verifying the `bond-api` `MissionProvider` adapter
+- Regenerating manuscript tokens/figures or running the gates
 
-## Quick Reference
+## Layout
+
+- `src/licence_to_kill/laundering_graph.py` — Sanchez laundering graph
+  (cycle/funnel/integration)
+- `src/licence_to_kill/vessel_forensics.py` — Wavekrest-class forensic
+  physics + anomaly scan
+- `src/licence_to_kill/rogue_ops.py` — revoked-licence risk DP
+- `src/licence_to_kill/mission.py` — `bond-api` `MissionProvider` (the only
+  `bond_api` import)
+- `src/licence_to_kill/manuscript_variables.py` + `figures/plots.py`
+- `scripts/` — thin phase CLIs + preflight + manuscript generation
+- `tests/` — zero-mock, real-data, ~99 % line+branch
+
+## Quick commands
 
 ```bash
-# From the repository root
-uv run pytest projects/working/bond/licence_to_kill/tests --cov=projects/working/bond/licence_to_kill/src --cov-fail-under=90
-uv run python scripts/pipeline/stage_02_analysis.py --project templates/licence_to_kill
-uv run python scripts/pipeline/stage_03_render.py --project templates/licence_to_kill
-uv run python scripts/pipeline/stage_04_validate.py --project templates/licence_to_kill
-uv run python scripts/pipeline/stage_05_copy.py --project templates/licence_to_kill
+cd projects/working/bond/licence_to_kill
+uv sync --extra dev
+uv run pytest tests/ --cov=src --cov-fail-under=90
+uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
+uv run mypy src/ scripts/
+uv run python scripts/z_generate_manuscript_variables.py
 ```
 
 ## Pitfalls
 
-- **Keep scripts thin.** Business logic belongs in `src/` or shared
-  `infrastructure/`, not in `scripts/`.
-- **No mocks.** All tests must use real data, real files, and real
-  computation.
-- **Outputs are disposable.** Never hand-edit `output/` — regenerate from
-  source and config.
-- **Keep tracked benchmarks deterministic.** Serialize reproducible inputs,
-  objective values, and checks; keep wall-clock timing as a runtime-only
-  diagnostic.
-- **Run from the repo root.** Commands assume the template monorepo root
-  as working directory unless the child `AGENTS.md` states otherwise.
-
-## Cross-refs
-
-- Project contract: [`AGENTS.md`](../../../AGENTS.md)
-- README: [`README.md`](../../../README.md)
-- TODO: [`TODO.md`](../../../TODO.md)
-- Exemplar roster: [`projects/AGENTS.md`](../../../../../AGENTS.md)
+- Domain core must stay bond-api-free and infrastructure-free (guarded by
+  `tests/test_mission.py`). Only `mission.py` imports `bond_api`.
+- All persisted results are deterministic (seed 0, `wall_time_s 0.0`); don't
+  introduce wall-clock or untracked RNG in outputs.
+- Manuscript metrics are tokens injected from `manuscript_variables.py`,
+  never handwritten in prose; never write literal `{{TOKEN}}` placeholder
+  text in numbered sections (the cross-ref gate flags it).
+- Layer contract on this package allows no `infrastructure` imports
+  (`manuscript/layer_contract.yaml`).
