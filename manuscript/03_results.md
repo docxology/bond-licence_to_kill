@@ -16,15 +16,17 @@ detectors identify:
   that returns cash through the shell grid;
 - **{{LAUNDERING_FUNNELS}}** funnels (collectors that concentrate the flow and
   distributors that scatter it);
-- **{{LAUNDERING_PATHS}}** representative placement→integration chains
-  (enumeration capped at 200), whose mean depth drives the depth component.
+- **{{LAUNDERING_PATHS}}** representative placement→integration chains,
+  whose mean depth drives the depth component. This is the enumeration cap
+  ({{LAUNDERING_MAX_PATHS}}), not the true chain count: the canonical network
+  saturates it, so the figure should be read as "at least this many".
 
 The composite **layering score** is **{{LAYERING_SCORE}}** (of a possible 1),
 reflecting the substantial but deliberately incomplete obscuring structure.
 The **integration score** is **{{INTEGRATION_SCORE}}**: the placed dirty
 value is diluted to that degree by the legitimate exporter flows feeding the
 same banks, with a **mixing entropy** of **{{MIXING_ENTROPY}}** nats across
-the four integration sinks.
+the {{LAUNDERING_SINK_COUNT}} integration sinks.
 
 ![Sanchez money-laundering graph; node colour is the dirty-flow share, laid
 out left-to-right by laundering stage.](figures/laundering_network.png){#fig:laundering}
@@ -60,9 +62,19 @@ dynamic program evaluates **{{ROGUE_POLICY_CELLS}}** state cells and returns:
 - a **{{ROGUE_FIRST_ACTION}}** opening — the least-escalating intensity,
   confirming that a revoked-licence operator must build capability
   surreptitiously before any overt strike;
-- a **peak blowback hazard** of **{{ROGUE_PEAK_BLOWBACK}}** late in the
-  horizon, the point beyond which continued operation becomes nearly certain
-  to draw retaliation (@fig:rogue).
+- a close on **{{ROGUE_LAST_ACTION}}**. The optimal policy holds the
+  least-visible intensity for the whole horizon and spends its escalation on
+  the final step, when there is no remaining future for the raised alert to
+  damage — the classic finite-horizon end effect, arrived at here without
+  being written in;
+- a **peak alert** of **{{ROGUE_PEAK_ALERT}}** and a **peak blowback
+  hazard** of **{{ROGUE_PEAK_BLOWBACK}}**, reached on the last step
+  (@fig:rogue). Under the optimal policy the hazard is driven almost
+  entirely by *accumulated exposure* rather than by adversary alert: on the
+  integer alert lattice the stealth intensity's visibility rounds to no
+  alert increase at all, so the operator's growing risk is simply time in
+  the field. That is a boundary of the quantisation, not a claim that
+  stealth is free — Section 7 states it plainly.
 
 ![Rogue-00 escalation: alert/exposure build while the blowback hazard climbs
 under the optimal policy.](figures/rogue_escalation.png){#fig:rogue}
@@ -73,12 +85,15 @@ The canonical courier parcel is valued at **${{FIN_VALUE_USD}}** in
 **${{FIN_DENOMINATION}}** notes — **{{FIN_BILLS}}** bills. US-currency note
 physics give a bulk-cash mass of **{{FIN_CASH_MASS_KG}} kg** and a volume of
 just **{{FIN_CASH_VOLUME_M3}} m³** (bulk density ≈ {{FIN_CASH_DENSITY}}
-kg/m³). The supply chain prices a kilogram at **${{FIN_WHOLESALE_PER_KG}}**
-wholesale and **${{FIN_STREET_PER_KG}}** at street level (**${{FIN_STREET_PER_GRAM}}**
-per gram), or **${{FIN_STREET_PURE_GRAM}}** per *pure* gram at 60 % purity —
-the same value is quietly present at every stage.
+kg/m³). From a base production cost of **${{FIN_BASE_COST_PER_KG}}**/kg the
+supply chain ({{FIN_STAGE_LADDER}}) prices a kilogram at
+**${{FIN_WHOLESALE_PER_KG}}** wholesale and **${{FIN_STREET_PER_KG}}** at
+street level (**${{FIN_STREET_PER_GRAM}}** per gram), or
+**${{FIN_STREET_PURE_GRAM}}** per *pure* gram at {{FIN_PURITY}} purity — the
+same value is quietly present at every stage.
 
-Against the Wavekrest-class hold (520 m³, 300 t usable mass), the parcel is
+Against the Wavekrest-class hold ({{FIN_HOLD_VOLUME_M3}} m³,
+{{FIN_HOLD_MASS_T}} t usable mass), the parcel is
 **{{FIN_MANIFEST_FEASIBLE}}** to fit and needs **{{FIN_TRIPS}}** trip(s).
 The money is compact; the hard constraint is the cover cargo that must blend
 with it — not the cash itself.
@@ -92,11 +107,14 @@ Risk-optimal routing over the campaign network returns the layered path
 single leg, a **{{LOG_RISK_REDUCTION}}** reduction — the same pairing the
 finance graph demonstrates in the money layer (@fig:operations). The voyage
 requires **{{LOG_REFUELS}}** refuelling stops (against the Wavekrest's
-~4,257 nm endurance) for roughly **{{LOG_TRIP_DAYS}}** days at sea
-(**{{LOG_TRIP_HOURS}}** hours). The gadget loadout under a 25 kg budget
-selects **{{LOG_KNAPSACK_ITEMS}}** items (including the Walther PPK, explosive
-charges, and the surveillance kit) worth **{{LOG_KNAPSACK_VALUE}}** mission
-points at **{{LOG_KNAPSACK_WEIGHT}} kg**.
+{{LOG_ENDURANCE_NM}} nm endurance at {{LOG_SPEED_KNOTS}} kn) for roughly
+**{{LOG_TRIP_DAYS}}** days at sea (**{{LOG_TRIP_HOURS}}** hours). The gadget
+loadout under a {{LOG_CAPACITY_KG}} kg budget selects
+**{{LOG_KNAPSACK_ITEMS}}** of {{LOG_GADGET_CANDIDATES}} candidates
+(including the Walther PPK, explosive charges, and the surveillance kit)
+worth **{{LOG_KNAPSACK_VALUE}}** mission points at
+**{{LOG_KNAPSACK_WEIGHT}} kg** — the exact optimum, not a greedy
+value-density pick.
 
 ![ROGUE operations network with the risk-optimal route highlighted against
 the direct single leg.](figures/operations_logistics.png){#fig:operations}
@@ -105,10 +123,15 @@ the direct single leg.](figures/operations_logistics.png){#fig:operations}
 
 Across the **{{SURV_ACTION_COUNT}}**-action covert campaign, the
 survival-optimal order — opening with *{{SURV_FIRST_ACTION}}*, the lowest-
-signature move — achieves a probability of completing undetected of
-**{{SURV_SUCCESS}}**. Cumulative detection crosses the 0.5 threshold on the
+signature move, and closing with *{{SURV_LAST_ACTION}}* — achieves a
+probability of completing undetected of **{{SURV_SUCCESS}}**. Cumulative
+detection crosses the {{SURV_THRESHOLD}} threshold on the
 **{{SURV_COMPROMISE_STEP_ONE}}**th action, and the peak step hazard reaches
 **{{SURV_PEAK_HAZARD}}**: the adversary's watchlist eventually prices the
 campaign in, and the operator wins only by doing the cheaply-detectable work
 first and the compounding-mistake last.
+
+Because {{SURV_ACTION_COUNT}} ≤ {{SURV_EXACT_LIMIT}}, this ordering is the
+exhaustively-verified optimum rather than the ratio-rule heuristic — no
+permutation of these actions survives more often.
 

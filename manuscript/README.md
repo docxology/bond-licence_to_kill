@@ -4,9 +4,10 @@
 
 - **Sections** `00_abstract` … `07_scope_and_related_work` + `99_references`.
 - **Tokens** — injected via `src/licence_to_kill/manuscript_variables.py`.
-- **Figures** — three PNGs generated deterministically by
+- **Figures** — four PNGs generated deterministically by
   `src/licence_to_kill/figures/plots.py` into `output/figures/` and
-  referenced by `@fig:laundering` / `@fig:rogue` / `@fig:vessel`.
+  referenced by `@fig:laundering` / `@fig:vessel` / `@fig:rogue` /
+  `@fig:operations`.
 
 Regenerate everything with:
 

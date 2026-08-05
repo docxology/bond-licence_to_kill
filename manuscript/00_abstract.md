@@ -2,8 +2,9 @@
 
 {{BOND_TITLE}} — {{BOND_SUBTITLE}} — is a deterministic, fully-tested
 special-agent mission software package implementing the ROGUE mission from
-the film *Licence to Kill* (1989). It pairs three interoperating domains with
-the frozen BOND-API `MissionProvider` protocol:
+the film *Licence to Kill* (1989). Six interoperating domain models sit
+behind the frozen BOND-API `MissionProvider` protocol. The first three
+answer the field analyst's original questions:
 
 1. a **money-laundering graph** model of the Sanchez cartel's
    placement–layering–integration flow, with cycle, funnel, and dirty-flow
@@ -15,7 +16,7 @@ the frozen BOND-API `MissionProvider` protocol:
    been revoked must trade mission gain against escalating adversary alert
    and blowback, solved exactly by finite-horizon dynamic programming.
 
-The package deepens those domains with three further interoperating models:
+The remaining three carry the campaign from the ledger into the world:
 
 4. **narcotics-finance economics** — the supply-chain price/purity ladder
    and the cash physics (mass, volume, hold manifest) behind the cartel's
@@ -36,8 +37,10 @@ profile resolves a gross tonnage of {{VESSEL_GROSS_TONNAGE}} and flags
 {{VESSEL_ANOMALIES}} forensic anomalies (score {{VESSEL_ANOMALY_SCORE}}).
 The rogue-00 dynamic program over {{ROGUE_HORIZON}} steps returns an optimal
 expected mission value of {{ROGUE_OPTIMAL_VALUE}} with a
-{{ROGUE_FIRST_ACTION}} opening — evidence that, under a revoked licence,
-unsanctioned escalation is strictly a last resort. The layered logistics
+{{ROGUE_FIRST_ACTION}} opening, closing on {{ROGUE_LAST_ACTION}} — evidence
+that, under a revoked licence, unsanctioned escalation is strictly a last
+resort, worth taking only when there is no remaining horizon left to
+protect. The layered logistics
 route cuts cumulative interdiction risk by {{LOG_RISK_REDUCTION}} versus the
 direct leg ({{LOG_ROUTE_RISK}} vs {{LOG_DIRECT_RISK}}), and the covert
 campaign's survival-optimal sequence completes undetected with probability

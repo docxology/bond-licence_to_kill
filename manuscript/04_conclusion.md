@@ -13,15 +13,24 @@ closed form:
 - covert cargo is betrayed by marine physics ({{VESSEL_ANOMALIES}} anomalies
   flagged on the canonical mothership);
 - unsanctioned operations have an exact optimal policy — and that policy
-  begins with {{ROGUE_FIRST_ACTION}}, not with a frontal assault
+  begins with {{ROGUE_FIRST_ACTION}}, not with a frontal assault, saving the
+  {{ROGUE_LAST_ACTION}} move for the step with no future left to protect
   (optimal value {{ROGUE_OPTIMAL_VALUE}});
 - the money is bounded by cash *physics* before any courier flies
-  ({{FIN_BILLS}} bills, {{FIN_CASH_MASS_KG}} kg, one hold-trivial trip);
+  ({{FIN_BILLS}} bills, {{FIN_CASH_MASS_KG}} kg, {{FIN_TRIPS}} hold-trivial
+  trip);
 - routing the campaign cheaply against risk matters — the layered leg cuts
   cumulative interdiction by {{LOG_RISK_REDUCTION}} ({{LOG_ROUTE_RISK}} vs
   {{LOG_DIRECT_RISK}});
 - an unsanctioned operator's cover is finite — survival to completion is
   {{SURV_SUCCESS}}, and order is the operator's only free variable.
+
+The six domains stay honest about each other because they share one
+declaration: the `canonical_*_params()` functions are read by the mission
+adapter, the manuscript token generator, and the figure generators alike,
+and the `mission:` block of `manuscript/config.yaml` is asserted equal to
+them by the test suite. A parameter cannot change in one place and quietly
+survive in another.
 
 Because the entire pipeline runs on a fixed seed ({{SEED}}) with no random
 draws in the detectors and no wall-clock in persisted outputs, every figure

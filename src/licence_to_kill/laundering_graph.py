@@ -26,7 +26,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
 
@@ -36,9 +36,21 @@ __all__ = [
     "LaunderingReport",
     "Transaction",
     "TransactionGraph",
+    "DEFAULT_FUNNEL_THRESHOLD",
+    "LAYERING_WEIGHTS",
     "analyze_laundering",
     "build_sanchez_network",
+    "canonical_laundering_params",
 ]
+
+#: Default funnel degree-imbalance threshold (collector >= tau, distributor <= 1/tau).
+DEFAULT_FUNNEL_THRESHOLD = 1.5
+
+#: Composite layering-score blend weights: (cycle, depth, funnel). Heuristic
+#: weights, not estimates — see the manuscript's Limitations section. Named
+#: here so the manuscript can cite them as tokens instead of hand-authoring
+#: three numbers that would drift the moment the blend is retuned.
+LAYERING_WEIGHTS: tuple[float, float, float] = (0.4, 0.3, 0.3)
 
 #: Sink / integration sectors (terminal accounts where dirty value pools).
 INTEGRATION_SECTORS = ("bank",)
@@ -179,20 +191,25 @@ class TransactionGraph:
             "funnel_ratio": funnel_ratio,
         }
 
-    def funnels(self, threshold: float = 1.5) -> tuple[dict[str, float | str | int], ...]:
+    def funnels(self, threshold: float = DEFAULT_FUNNEL_THRESHOLD) -> tuple[dict[str, float | str | int], ...]:
         """Flow nodes that genuinely concentrate (fan-in, ratio >= threshold) or
         distribute (fan-out, ratio <= 1/threshold).
 
         A node must show real fan-in or fan-out (>= 2 unique counterparts on
         the dense side) — a trivial linear pass-through is not a funnel.
+
+        There is deliberately no isolated-node guard: a node only enters the
+        graph via :meth:`add_transaction`, so every node has at least one
+        incident edge, and a hypothetical isolated node would fail both the
+        collector and the distributor test anyway (both require >= 2 unique
+        counterparts). A guard here would be unreachable and could never
+        change an outcome.
         """
         results = []
         for node in self.nodes():
             info = self.concentration(node)
             unique_sources = int(info["unique_sources"])
             unique_targets = int(info["unique_targets"])
-            if unique_sources == 0 and unique_targets == 0:
-                continue  # isolated node is not structure
             ratio = float(info["funnel_ratio"])
             is_collector = unique_sources >= 2 and ratio >= threshold
             is_distributor = unique_targets >= 2 and ratio <= 1.0 / threshold
@@ -331,26 +348,34 @@ def analyze_laundering(
     sources: Iterable[str],
     sinks: Iterable[str],
     max_depth: int = 8,
+    max_cycles: int = 50,
+    max_paths: int = 200,
+    funnel_threshold: float = DEFAULT_FUNNEL_THRESHOLD,
 ) -> LaunderingReport:
     """Run the full layering + integration detection suite over ``graph``.
 
     ``sources`` are the dirty placement nodes and ``sinks`` the integration
     accounts. The composite layering score blends normalized cycle volume,
     mean layering-chain depth, and funnel imbalance, each in [0, 1].
+
+    The four search bounds (``max_depth``, ``max_cycles``, ``max_paths``,
+    ``funnel_threshold``) are threaded through to the detectors rather than
+    left at their callee defaults, so :func:`canonical_laundering_params`
+    genuinely controls the analysis instead of merely naming it.
     """
-    cycles = graph.find_cycles(max_depth=max_depth)
-    funnels = graph.funnels()
+    cycles = graph.find_cycles(max_depth=max_depth, max_cycles=max_cycles)
+    funnels = graph.funnels(threshold=funnel_threshold)
     sink_tuple = tuple(sinks)
     source_list = list(sources)
 
-    paths = graph.layering_paths(source_list, sink_tuple, max_depth=max_depth)
+    paths = graph.layering_paths(source_list, sink_tuple, max_depth=max_depth, max_paths=max_paths)
     depth_stats = [len(p) - 1 for p in paths]
     mean_depth = sum(depth_stats) / len(depth_stats) if depth_stats else 0.0
 
     imbalance_vals = [abs(float(f["funnel_ratio"]) - 1.0) for f in funnels]
     mean_imbalance = sum(imbalance_vals) / len(imbalance_vals) if imbalance_vals else 0.0
 
-    cycle_component = min(math.log1p(len(cycles)) / math.log1p(50.0), 1.0)
+    cycle_component = min(math.log1p(len(cycles)) / math.log1p(float(max_cycles)), 1.0)
     depth_component = min(mean_depth / max(float(max_depth), 1.0), 1.0)
     funnel_component = min(mean_imbalance / 2.0, 1.0)
     components = {
@@ -358,7 +383,8 @@ def analyze_laundering(
         "depth_component": depth_component,
         "funnel_component": funnel_component,
     }
-    layering_score = 0.4 * cycle_component + 0.3 * depth_component + 0.3 * funnel_component
+    w_cycle, w_depth, w_funnel = LAYERING_WEIGHTS
+    layering_score = w_cycle * cycle_component + w_depth * depth_component + w_funnel * funnel_component
 
     placement = sum(float(graph.out_amount(s)) for s in sources)
     injections = {s: float(graph.out_amount(s)) for s in sources}
@@ -424,8 +450,28 @@ def build_sanchez_network(seed: int = 0) -> TransactionGraph:
         for b in banks:
             add(c, b, "bank")
     # legitimate mixing flows into the same banks
-    for l in legit:
+    for exporter in legit:
         for b in banks:
-            add(l, b, "legit")
+            add(exporter, b, "legit")
 
     return graph
+
+
+def canonical_laundering_params() -> dict[str, Any]:
+    """Single source of truth for the canonical Sanchez-network analysis.
+
+    Mirrors the ``mission.laundering`` block of ``manuscript/config.yaml``
+    (bound by ``tests/test_canonical_params.py``) and is consumed by
+    ``mission.py``, ``manuscript_variables.py``, and ``figures/plots.py`` so
+    the three cannot drift apart.
+    """
+    return {
+        "seed": 0,
+        "sources": ("S1", "S2", "S3"),
+        "sinks": ("B1", "B2", "B3", "B4"),
+        "max_depth": 8,
+        "max_cycles": 50,
+        "max_paths": 200,
+        "funnel_threshold": DEFAULT_FUNNEL_THRESHOLD,
+        "layering_weights": LAYERING_WEIGHTS,
+    }

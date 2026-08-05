@@ -12,6 +12,13 @@ import re
 
 import pytest
 
+from licence_to_kill.laundering_graph import canonical_laundering_params
+from licence_to_kill.narcotics_finance import canonical_finance_params
+from licence_to_kill.operations_logistics import canonical_logistics_params
+from licence_to_kill.rogue_ops import canonical_rogue_params
+from licence_to_kill.surveillance import EXACT_ORDER_LIMIT, canonical_surveillance_params
+from licence_to_kill.vessel_forensics import CARGO_DENSITY_CEILING, DISPLACEMENT_TOLERANCE
+
 from licence_to_kill.manuscript_variables import (
     generate_variables,
     load_mission_config,
@@ -107,3 +114,71 @@ def test_domain_extension_tokens():
     # all three new prefixes present
     for prefix in ("FIN_", "LOG_", "SURV_"):
         assert any(k.startswith(prefix) for k in tokens)
+
+
+#: Declared parameters that MUST reach the prose as a token, never as a
+#: hand-typed literal: token name → the canonical value it has to carry.
+#: This is the concrete form of the "never hand-author a metric" rule for
+#: *parameters* (the results side is already covered by the token gate).
+_PARAMETER_BINDINGS = {
+    "LAUNDERING_MAX_PATHS": lambda: str(canonical_laundering_params()["max_paths"]),
+    "LAUNDERING_MAX_DEPTH": lambda: str(canonical_laundering_params()["max_depth"]),
+    "LAUNDERING_MAX_CYCLES": lambda: str(canonical_laundering_params()["max_cycles"]),
+    "LAUNDERING_FUNNEL_THRESHOLD": lambda: f"{canonical_laundering_params()['funnel_threshold']:.1f}",
+    "LAYERING_WEIGHT_CYCLE": lambda: f"{canonical_laundering_params()['layering_weights'][0]:.1f}",
+    "FIN_HOLD_VOLUME_M3": lambda: f"{canonical_finance_params()['hold_volume_m3']:,.0f}",
+    "FIN_HOLD_MASS_T": lambda: f"{canonical_finance_params()['hold_mass_kg'] / 1000.0:,.0f}",
+    "FIN_PURITY": lambda: f"{canonical_finance_params()['purity']:.0%}",
+    "FIN_BASE_COST_PER_KG": lambda: f"{canonical_finance_params()['base_cost_per_kg']:,.0f}",
+    "LOG_CAPACITY_KG": lambda: f"{canonical_logistics_params()['capacity_kg']:.0f}",
+    "LOG_ENDURANCE_NM": lambda: f"{canonical_logistics_params()['endurance_nm']:,.0f}",
+    "LOG_SPEED_KNOTS": lambda: f"{canonical_logistics_params()['speed_knots']:.0f}",
+    "SURV_THRESHOLD": lambda: f"{canonical_surveillance_params()['model'].detection_threshold:.2f}",
+    "SURV_EXACT_LIMIT": lambda: str(EXACT_ORDER_LIMIT),
+    "ROGUE_EXPOSURE_CAP": lambda: str(canonical_rogue_params()["exposure_cap"]),
+    "VESSEL_CARGO_DENSITY_CEILING": lambda: f"{CARGO_DENSITY_CEILING:.1f}",
+    "VESSEL_DISPLACEMENT_TOLERANCE": lambda: f"{DISPLACEMENT_TOLERANCE:.0%}",
+}
+
+
+def _numbered_sections() -> dict[str, str]:
+    manuscript = project_root() / "manuscript"
+    return {p.name: p.read_text(encoding="utf-8") for p in sorted(manuscript.glob("[0-9]*.md"))}
+
+
+@pytest.mark.parametrize("token", sorted(_PARAMETER_BINDINGS))
+def test_declared_parameter_reaches_prose_as_a_token(token):
+    """Each declared parameter is bound: canonical value → token → prose.
+
+    Two failure modes this catches, both of which have bitten this package
+    before: (a) the token drifts from the canonical value it claims to
+    report, and (b) someone "simplifies" the prose by typing the number
+    directly, silently severing it from source. Deleting the token reference
+    from every section fails this test.
+    """
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    assert tokens[token] == _PARAMETER_BINDINGS[token](), f"{token} drifted from its canonical source"
+    placeholder = "{{" + token + "}}"
+    citing = [name for name, text in _numbered_sections().items() if placeholder in text]
+    assert citing, f"{token} is generated but no numbered section cites it — prose may hard-code it instead"
+
+
+def test_no_section_leaves_an_unresolved_placeholder():
+    """After substitution, no ``{{...}}`` may survive in any numbered section."""
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    for name, text in _numbered_sections().items():
+        rendered = substitute(text, tokens)
+        assert _TOKEN_RE.search(rendered) is None, f"{name} has an unresolved token after substitution"
+
+
+def test_every_generated_token_is_used_somewhere():
+    """A token nobody cites is dead weight that will silently rot.
+
+    ``GENERATION_TIMESTAMP`` and the identity tokens consumed by the render
+    header are the documented exceptions.
+    """
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    allowed_unused = {"GENERATION_TIMESTAMP"}
+    corpus = "".join(_numbered_sections().values())
+    unused = sorted(k for k in tokens if k not in allowed_unused and "{{" + k + "}}" not in corpus)
+    assert unused == [], f"generated but never cited: {unused}"

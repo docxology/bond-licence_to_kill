@@ -10,8 +10,9 @@ PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 
 ## When to use
 
-- Running/editing the ROGUE domain core (laundering graph, vessel
-  forensics, rogue DP)
+- Running/editing the ROGUE domain core: laundering graph, vessel
+  forensics, rogue-policy DP, narcotics finance, operations logistics,
+  surveillance/watchlist
 - Wiring or verifying the `bond-api` `MissionProvider` adapter
 - Regenerating manuscript tokens/figures or running the gates
 
@@ -32,7 +33,8 @@ PROJECT BOND film package for *Licence to Kill* (1989), mission codename
   `bond_api` import)
 - `src/licence_to_kill/manuscript_variables.py` + `figures/plots.py`
 - `scripts/` — thin phase CLIs + preflight + manuscript generation
-- `tests/` — zero-mock, real-data, ~99.6 % line+branch
+- `tests/` — zero-mock, real-data; gate is >= 90 % line+branch, measured
+  figure recorded in `TODO.md`
 
 ## Quick commands
 
@@ -56,3 +58,9 @@ uv run python scripts/z_generate_manuscript_variables.py
   text in numbered sections (the cross-ref gate flags it).
 - Layer contract on this package allows no `infrastructure` imports
   (`manuscript/layer_contract.yaml`).
+- `MissionProvider`, `GADGET_REGISTRY`, and `run_rogue_mission` are FROZEN —
+  other BOND packages import them by name. Deepen inside the methods;
+  extend gadgets additively only.
+- Parameters live in `canonical_*_params()` per domain; the
+  `manuscript/config.yaml` `mission:` block is a mirror asserted equal by
+  `tests/test_canonical_params.py`. Change the Python first.

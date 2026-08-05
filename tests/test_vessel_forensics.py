@@ -9,13 +9,17 @@ from __future__ import annotations
 import pytest
 
 from licence_to_kill.vessel_forensics import (
+    CARGO_DENSITY_CEILING,
     DIESEL_DENSITY,
     DIESEL_SFC,
+    DISPLACEMENT_TOLERANCE,
+    POWER_DENSITY_CEILING,
     SEAWATER_DENSITY,
     VesselForensicReport,
     VesselProfile,
     WAVEKREST_CLASS,
     anomaly_scan,
+    canonical_vessel_params,
     displacement_from_draft,
     endurance_range_nm,
     forensic_report,
@@ -163,3 +167,53 @@ def test_forensic_report_full_and_deterministic():
     assert a.endurance_nm == pytest.approx(4256.81, abs=0.5)
     assert len(a.anomalies) == 2
     assert a.as_dict()["num_anomalies"] == 2
+
+
+def test_anomaly_scan_clean_route_flags_nothing():
+    """A voyage inside both speed capability and fuel endurance is clean.
+
+    This pins the *negative* side of the route/endurance checks: without it
+    both branches only ever ran in their flagging direction, so an inverted
+    comparison would still have looked green.
+    """
+    endurance = endurance_range_nm(WAVEKREST_CLASS)
+    distance = endurance * 0.5
+    duration = distance / (WAVEKREST_CLASS.max_speed_knots * 0.5)  # well under the ceiling
+    flags, score = anomaly_scan(WAVEKREST_CLASS, distance_nm=distance, duration_h=duration)
+    assert flags == ()
+    assert score == pytest.approx(0.0)
+
+
+def test_anomaly_scan_propagates_invalid_profile_error():
+    """An unusable profile must raise, not silently score zero anomalies.
+
+    ``anomaly_scan`` used to wrap ``endurance_range_nm`` in a bare
+    ``except ValueError: endurance = 0.0``, which downgraded a structurally
+    invalid profile to "no endurance anomaly" while ``forensic_report``
+    raised on the very same input. The handler is gone; this pins that.
+    """
+    broken = _profile(max_speed_knots=0.0)
+    with pytest.raises(ValueError, match="max_speed_knots must be positive"):
+        anomaly_scan(broken, distance_nm=100.0, duration_h=10.0)
+    with pytest.raises(ValueError, match="max_speed_knots must be positive"):
+        forensic_report(broken, distance_nm=100.0, duration_h=10.0)
+
+
+def test_anomaly_thresholds_are_the_documented_constants():
+    """The scan's ceilings come from named constants, not inline literals."""
+    assert CARGO_DENSITY_CEILING == pytest.approx(1.4)
+    assert DISPLACEMENT_TOLERANCE == pytest.approx(0.15)
+    assert POWER_DENSITY_CEILING == pytest.approx(2.0)
+    # just below each ceiling → clean; just above → flagged
+    volume = WAVEKREST_CLASS.cargo_volume_m3
+    under, _ = anomaly_scan(WAVEKREST_CLASS, observed={"cargo_mass_t": volume * (CARGO_DENSITY_CEILING - 0.01)})
+    over, _ = anomaly_scan(WAVEKREST_CLASS, observed={"cargo_mass_t": volume * (CARGO_DENSITY_CEILING + 0.01)})
+    assert under == ()
+    assert any("dense cargo" in f for f in over)
+
+
+def test_canonical_vessel_params_drive_the_reported_anomalies():
+    params = canonical_vessel_params()
+    report = forensic_report(params["profile"], observed=params["observed"])
+    assert params["profile"] is WAVEKREST_CLASS
+    assert len(report.anomalies) == 2

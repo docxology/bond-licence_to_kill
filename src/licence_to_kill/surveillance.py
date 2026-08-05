@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from typing import Any, Sequence
 
 __all__ = [
+    "EXACT_ORDER_LIMIT",
     "CovertAction",
     "SurveillanceModel",
     "SurveillanceReport",
@@ -44,7 +45,7 @@ __all__ = [
 ]
 
 #: Exact search is factorial; cap it at 8! = 40,320 permutations.
-_EXACT_LIMIT = 8
+EXACT_ORDER_LIMIT = 8
 
 
 def _logistic(z: float) -> float:
@@ -164,8 +165,8 @@ def exact_action_order(
     model: SurveillanceModel,
 ) -> tuple[tuple[CovertAction, ...], float]:
     """Exhaustive permutation search for maximum survival probability."""
-    if len(actions) > _EXACT_LIMIT:
-        raise ValueError(f"exact search limited to {_EXACT_LIMIT} actions")
+    if len(actions) > EXACT_ORDER_LIMIT:
+        raise ValueError(f"exact search limited to {EXACT_ORDER_LIMIT} actions")
     if not actions:
         return (), 1.0
     best_order: tuple[CovertAction, ...] | None = None
@@ -184,7 +185,7 @@ def optimal_action_order(
     model: SurveillanceModel,
 ) -> tuple[tuple[CovertAction, ...], float]:
     """Exact optimal order when feasible; ratio-rule heuristic otherwise."""
-    if len(actions) <= _EXACT_LIMIT:
+    if len(actions) <= EXACT_ORDER_LIMIT:
         return exact_action_order(actions, model)
     heuristic = heuristic_action_order(actions, model)
     success, _ = simulate_sequence(heuristic, model)

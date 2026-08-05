@@ -38,6 +38,7 @@ from licence_to_kill.laundering_graph import (
     TransactionGraph,
     analyze_laundering,
     build_sanchez_network,
+    canonical_laundering_params,
 )
 from licence_to_kill.narcotics_finance import (
     NarcoticsFinanceReport,
@@ -50,7 +51,7 @@ from licence_to_kill.operations_logistics import (
     analyze_operations_logistics,
     canonical_logistics_params,
 )
-from licence_to_kill.rogue_ops import RogueModel, RogueReport, build_rogue_model, solve_optimal_policy
+from licence_to_kill.rogue_ops import RogueModel, RogueReport, canonical_rogue_params, solve_optimal_policy
 from licence_to_kill.surveillance import (
     CovertAction,
     SurveillanceModel,
@@ -60,35 +61,39 @@ from licence_to_kill.surveillance import (
 )
 from licence_to_kill.vessel_forensics import (
     VesselForensicReport,
-    WAVEKREST_CLASS,
+    VesselProfile,
+    canonical_vessel_params,
     forensic_report,
 )
 
 __all__ = ["GADGET_REGISTRY", "MissionProvider", "run_rogue_mission"]
 
-#: Deterministic seed for the whole ROGUE run (0 disables randomness).
-_SEED = 0
-
-#: The dirty-placement (source) nodes in the canonical Sanchez network.
-_SOURCES = ("S1", "S2", "S3")
-#: The integration (bank) sink nodes.
-_SINKS = ("B1", "B2", "B3", "B4")
-
-#: Deterministic vessel observations that expose covert modification
-#: (implausibly dense cargo + draft/displacement mismatch → hidden contraband).
-_VESSEL_OBSERVED: dict[str, float] = {
-    "cargo_mass_t": 900.0,
-    "declared_displacement_t": 700.0,
-}
-
-#: The canonical rogue risk model (horizon used by plan + recon).
-_ROGUE_MODEL: RogueModel = build_rogue_model()
-
-#: Canonical narcotics-finance / logistics / surveillance scenarios (single
-#: source of truth shared with ``manuscript_variables.py``).
+#: Canonical scenarios for all six domains — every constant used below comes
+#: from a ``canonical_*_params()`` single source shared with
+#: ``manuscript_variables.py`` and ``figures/plots.py``, so the three consumers
+#: cannot drift apart (bound by ``tests/test_canonical_params.py``).
+_LAUNDERING = canonical_laundering_params()
+_VESSEL = canonical_vessel_params()
+_ROGUE = canonical_rogue_params()
 _FINANCE = canonical_finance_params()
 _LOGISTICS = canonical_logistics_params()
 _SURVEILLANCE = canonical_surveillance_params()
+
+#: Deterministic seed for the whole ROGUE run (0 disables randomness).
+_SEED: int = int(_LAUNDERING["seed"])
+
+#: The dirty-placement (source) nodes in the canonical Sanchez network.
+_SOURCES: tuple[str, ...] = _LAUNDERING["sources"]
+#: The integration (bank) sink nodes.
+_SINKS: tuple[str, ...] = _LAUNDERING["sinks"]
+
+#: Canonical vessel profile and the deterministic observations that expose
+#: covert modification (dense cargo + draft/displacement mismatch).
+_VESSEL_PROFILE: VesselProfile = _VESSEL["profile"]
+_VESSEL_OBSERVED: dict[str, float] = _VESSEL["observed"]
+
+#: The canonical rogue risk model (horizon used by plan + recon).
+_ROGUE_MODEL: RogueModel = _ROGUE["model"]
 _LOGISTICS_NETWORK = OperationNetwork(_LOGISTICS["legs"])
 _ACTIONS: tuple[CovertAction, ...] = _SURVEILLANCE["actions"]
 _SURV_MODEL: SurveillanceModel = _SURVEILLANCE["model"]
@@ -162,8 +167,16 @@ def _run_domain_analyses() -> tuple[
 ]:
     """Deterministically run all six domain analyses on canonical inputs."""
     graph = build_sanchez_network(seed=_SEED)
-    launder = analyze_laundering(graph, _SOURCES, _SINKS)
-    vessel = forensic_report(WAVEKREST_CLASS, observed=_VESSEL_OBSERVED)
+    launder = analyze_laundering(
+        graph,
+        _SOURCES,
+        _SINKS,
+        max_depth=int(_LAUNDERING["max_depth"]),
+        max_cycles=int(_LAUNDERING["max_cycles"]),
+        max_paths=int(_LAUNDERING["max_paths"]),
+        funnel_threshold=float(_LAUNDERING["funnel_threshold"]),
+    )
+    vessel = forensic_report(_VESSEL_PROFILE, observed=_VESSEL_OBSERVED)
     rogue = solve_optimal_policy(_ROGUE_MODEL)
     finance = analyze_narcotics_finance(**_FINANCE)
     logistics = analyze_operations_logistics(
@@ -204,9 +217,9 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                 kind="vessel",
                 name="wavekrest_class",
                 payload={
-                    "name": WAVEKREST_CLASS.name,
-                    "length_m": WAVEKREST_CLASS.length_m,
-                    "fuel_capacity_m3": WAVEKREST_CLASS.fuel_capacity_m3,
+                    "name": _VESSEL_PROFILE.name,
+                    "length_m": _VESSEL_PROFILE.length_m,
+                    "fuel_capacity_m3": _VESSEL_PROFILE.fuel_capacity_m3,
                 },
             ),
             Asset(
@@ -327,7 +340,7 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                     "analyze_laundering",
                     params={"sources": _SOURCES, "sinks": _SINKS, "objectives": len(brief.objectives)},
                 ),
-                Step("vessel", "forensic_scan", params={"profile": WAVEKREST_CLASS.name}),
+                Step("vessel", "forensic_scan", params={"profile": _VESSEL_PROFILE.name}),
                 Step("rogue", "solve_optimal_policy", params={"horizon": _ROGUE_MODEL.horizon}),
                 Step("finance", "narcotics_finance", params={"value_usd": _FINANCE["value_usd"]}),
                 Step(

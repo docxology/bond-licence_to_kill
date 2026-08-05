@@ -26,8 +26,11 @@ from licence_to_kill.laundering_graph import (
     TransactionGraph,
     analyze_laundering,
     build_sanchez_network,
+    canonical_laundering_params,
 )
 from licence_to_kill.narcotics_finance import (
+    BILL_MASS_G,
+    BILL_VOLUME_CM3,
     NarcoticsFinanceReport,
     analyze_narcotics_finance,
     canonical_finance_params,
@@ -39,30 +42,24 @@ from licence_to_kill.operations_logistics import (
     canonical_logistics_params,
     shortest_path,
 )
-from licence_to_kill.rogue_ops import RogueReport, build_rogue_model, solve_optimal_policy
+from licence_to_kill.rogue_ops import RogueReport, canonical_rogue_params, solve_optimal_policy
 from licence_to_kill.surveillance import (
+    EXACT_ORDER_LIMIT,
     SurveillanceReport,
     analyze_surveillance,
     canonical_surveillance_params,
 )
 from licence_to_kill.vessel_forensics import (
+    CARGO_DENSITY_CEILING,
+    DIESEL_SFC,
+    DISPLACEMENT_TOLERANCE,
+    SEAWATER_DENSITY,
     VesselForensicReport,
-    WAVEKREST_CLASS,
+    canonical_vessel_params,
     forensic_report,
 )
 
 __all__ = ["generate_variables", "load_mission_config", "project_root", "substitute"]
-
-#: Dirty-placement and integration nodes used to drive the analysis.
-_SOURCES = ("S1", "S2", "S3")
-_SINKS = ("B1", "B2", "B3", "B4")
-_SEED = 0
-
-#: Deterministic vessel observations (mirrors mission.py).
-_VESSEL_OBSERVED: dict[str, float] = {
-    "cargo_mass_t": 900.0,
-    "declared_displacement_t": 700.0,
-}
 
 
 def project_root() -> Path:
@@ -87,15 +84,31 @@ def _run_mission_analyses() -> tuple[
     OperationsLogisticsReport,
     SurveillanceReport,
 ]:
-    """Deterministically recompute the six-domain ROGUE results (typed)."""
+    """Deterministically recompute the six-domain ROGUE results (typed).
+
+    Every input comes from a ``canonical_*_params()`` single source, the same
+    ones ``mission.py`` consumes, so a manuscript token can never disagree
+    with the mission outcome it describes.
+    """
+    laundering_params = canonical_laundering_params()
+    vessel_params = canonical_vessel_params()
+    rogue_params = canonical_rogue_params()
     finance_params = canonical_finance_params()
     logistics_params = canonical_logistics_params()
     surveillance_params = canonical_surveillance_params()
 
-    graph = build_sanchez_network(seed=_SEED)
-    launder = analyze_laundering(graph, _SOURCES, _SINKS)
-    vessel = forensic_report(WAVEKREST_CLASS, observed=_VESSEL_OBSERVED)
-    rogue = solve_optimal_policy(build_rogue_model())
+    graph = build_sanchez_network(seed=int(laundering_params["seed"]))
+    launder = analyze_laundering(
+        graph,
+        laundering_params["sources"],
+        laundering_params["sinks"],
+        max_depth=int(laundering_params["max_depth"]),
+        max_cycles=int(laundering_params["max_cycles"]),
+        max_paths=int(laundering_params["max_paths"]),
+        funnel_threshold=float(laundering_params["funnel_threshold"]),
+    )
+    vessel = forensic_report(vessel_params["profile"], observed=vessel_params["observed"])
+    rogue = solve_optimal_policy(rogue_params["model"])
     finance = analyze_narcotics_finance(**finance_params)
     network = OperationNetwork(logistics_params["legs"])
     logistics = analyze_operations_logistics(
@@ -124,6 +137,15 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
     cfg = load_mission_config()
     paper = cfg.get("paper", {})
     _graph, launder, vessel, rogue, finance, logistics, surveillance = _run_mission_analyses()
+
+    laundering_params = canonical_laundering_params()
+    vessel_params = canonical_vessel_params()
+    rogue_params = canonical_rogue_params()
+    finance_params = canonical_finance_params()
+    logistics_params = canonical_logistics_params()
+    surveillance_params = canonical_surveillance_params()
+    surv_model = surveillance_params["model"]
+    vessel_profile = vessel_params["profile"]
 
     route = logistics.route
     # Direct single-leg route for the self-gauging risk reduction metric.
@@ -155,6 +177,16 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "INTEGRATION_SCORE": f"{launder.integration_score:.3f}",
         "MIXING_ENTROPY": f"{launder.mixing_entropy:.3f}",
         "PLACEMENT": f"{launder.placement:.1f}",
+        # laundering search bounds (declared parameters, not results)
+        "LAUNDERING_SOURCE_COUNT": str(len(laundering_params["sources"])),
+        "LAUNDERING_SINK_COUNT": str(len(laundering_params["sinks"])),
+        "LAUNDERING_MAX_DEPTH": str(laundering_params["max_depth"]),
+        "LAUNDERING_MAX_CYCLES": str(laundering_params["max_cycles"]),
+        "LAUNDERING_MAX_PATHS": str(laundering_params["max_paths"]),
+        "LAUNDERING_FUNNEL_THRESHOLD": f"{float(laundering_params['funnel_threshold']):.1f}",
+        "LAYERING_WEIGHT_CYCLE": f"{float(laundering_params['layering_weights'][0]):.1f}",
+        "LAYERING_WEIGHT_DEPTH": f"{float(laundering_params['layering_weights'][1]):.1f}",
+        "LAYERING_WEIGHT_FUNNEL": f"{float(laundering_params['layering_weights'][2]):.1f}",
         # vessel
         "VESSEL_GROSS_TONNAGE": f"{vessel.gross_tonnage:.0f}",
         "VESSEL_HULL_VOLUME": f"{vessel.hull_volume:.0f}",
@@ -163,14 +195,29 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "VESSEL_ENDURANCE_NM": f"{vessel.endurance_nm:.0f}",
         "VESSEL_ANOMALIES": str(len(vessel.anomalies)),
         "VESSEL_ANOMALY_SCORE": f"{vessel.anomaly_score:.1f}",
+        # vessel declared parameters + physical constants
+        "VESSEL_CARGO_VOLUME_M3": f"{vessel_profile.cargo_volume_m3:.0f}",
+        "VESSEL_BLOCK_COEFFICIENT": f"{vessel_profile.block_coefficient:.2f}",
+        "VESSEL_MAX_SPEED_KNOTS": f"{vessel_profile.max_speed_knots:.1f}",
+        "VESSEL_OBSERVED_CARGO_T": f"{float(vessel_params['observed']['cargo_mass_t']):,.0f}",
+        "VESSEL_OBSERVED_DISPLACEMENT_T": f"{float(vessel_params['observed']['declared_displacement_t']):,.0f}",
+        "VESSEL_SEAWATER_DENSITY": f"{SEAWATER_DENSITY:.3f}",
+        "VESSEL_DIESEL_SFC": f"{DIESEL_SFC:.3f}",
+        "VESSEL_CARGO_DENSITY_CEILING": f"{CARGO_DENSITY_CEILING:.1f}",
+        "VESSEL_DISPLACEMENT_TOLERANCE": f"{DISPLACEMENT_TOLERANCE:.0%}",
         # rogue
         "ROGUE_HORIZON": str(rogue.horizon),
         "ROGUE_ALERT_MAX": str(rogue.alert_max),
         "ROGUE_OPTIMAL_VALUE": f"{rogue.optimal_value:.3f}",
         "ROGUE_FIRST_ACTION": str(rogue.first_action),
+        "ROGUE_LAST_ACTION": str(rogue.escalation[-1]["action"]) if rogue.escalation else "none",
+        "ROGUE_PEAK_ALERT": f"{max((float(s['alert']) for s in rogue.escalation), default=0.0):.1f}",
         "ROGUE_PEAK_BLOWBACK": f"{rogue.peak_blowback:.3f}",
         "ROGUE_ACTION_CARD": " / ".join(str(a) for a in rogue.actions),
         "ROGUE_POLICY_CELLS": str(rogue.policy_cells),
+        "ROGUE_STEALTH_VISIBILITY": f"{float(rogue_params['model'].visibility[0]):.1f}",
+        "ROGUE_EXPOSURE_CAP": str(rogue_params["exposure_cap"]),
+        "ROGUE_EXPOSURE_CELLS": str(int(rogue_params["exposure_cap"]) + 1),
         # narcotics finance
         "FIN_VALUE_USD": f"{finance.value_usd:,.0f}",
         "FIN_DENOMINATION": f"{finance.denomination:.0f}",
@@ -184,6 +231,14 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "FIN_STREET_PURE_GRAM": f"{finance.street_per_pure_gram:.0f}",
         "FIN_MANIFEST_FEASIBLE": "yes" if finance.manifest.feasible else "no",
         "FIN_TRIPS": str(finance.trips),
+        # finance declared parameters + currency constants
+        "FIN_PURITY": f"{float(finance_params['purity']):.0%}",
+        "FIN_BASE_COST_PER_KG": f"{float(finance_params['base_cost_per_kg']):,.0f}",
+        "FIN_STAGE_LADDER": " → ".join(str(name) for name, _ in finance_params["stages"]),
+        "FIN_HOLD_VOLUME_M3": f"{float(finance_params['hold_volume_m3']):,.0f}",
+        "FIN_HOLD_MASS_T": f"{float(finance_params['hold_mass_kg']) / 1000.0:,.0f}",
+        "FIN_BILL_MASS_G": f"{BILL_MASS_G:.1f}",
+        "FIN_BILL_VOLUME_CM3": f"{BILL_VOLUME_CM3:.2f}",
         # operations logistics
         "LOG_ORIGIN": str(logistics.origin),
         "LOG_DESTINATION": str(logistics.destination),
@@ -200,6 +255,14 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "LOG_KNAPSACK_ITEMS": str(len(logistics.loadout.names)),
         "LOG_KNAPSACK_VALUE": f"{logistics.loadout.value:.0f}",
         "LOG_KNAPSACK_WEIGHT": f"{logistics.loadout.weight_kg:.1f}",
+        # logistics declared parameters
+        "LOG_CAPACITY_KG": f"{float(logistics_params['capacity_kg']):.0f}",
+        "LOG_SPEED_KNOTS": f"{float(logistics_params['speed_knots']):.0f}",
+        "LOG_ENDURANCE_NM": f"{float(logistics_params['endurance_nm']):,.0f}",
+        "LOG_REFUEL_HOURS": f"{float(logistics_params['refuel_hours']):.0f}",
+        "LOG_HUB_COUNT": str(len(OperationNetwork(logistics_params["legs"]).nodes())),
+        "LOG_NETWORK_LEGS": str(len(logistics_params["legs"])),
+        "LOG_GADGET_CANDIDATES": str(len(logistics_params["gadgets"])),
         # surveillance
         "SURV_ACTION_COUNT": str(len(surveillance.optimal_order)),
         "SURV_SUCCESS": f"{surveillance.success_probability:.3f}",
@@ -208,8 +271,15 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         ),
         "SURV_PEAK_HAZARD": f"{surveillance.peak_hazard:.3f}",
         "SURV_FIRST_ACTION": str(surveillance.optimal_order[0]) if surveillance.optimal_order else "none",
+        "SURV_LAST_ACTION": str(surveillance.optimal_order[-1]) if surveillance.optimal_order else "none",
+        # surveillance declared parameters
+        "SURV_THRESHOLD": f"{surv_model.detection_threshold:.2f}",
+        "SURV_BETA_0": f"{surv_model.beta_0:.1f}",
+        "SURV_BETA_WATCH": f"{surv_model.beta_watch:.1f}",
+        "SURV_BETA_SIGNATURE": f"{surv_model.beta_signature:.1f}",
+        "SURV_EXACT_LIMIT": str(EXACT_ORDER_LIMIT),
         # environment
-        "SEED": str(_SEED),
+        "SEED": str(laundering_params["seed"]),
         "PYTHON_VERSION": platform.python_version(),
         "NUMPY_VERSION": np.__version__,
         "GENERATION_TIMESTAMP": stamp,

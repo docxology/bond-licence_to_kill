@@ -1,80 +1,134 @@
 # licence_to_kill — ROGUE
 
 PROJECT BOND film package for *Licence to Kill* (1989), mission codename
-**ROGUE**. Deterministic special-agent mission software implementing the
-frozen `bond-api` `MissionProvider` protocol over six pure domain cores.
+**ROGUE**. Deterministic special-agent mission software: six pure domain
+cores behind the frozen `bond-api` `MissionProvider` protocol.
 
-## What it does
+## The film as a specification
 
-1. **Money-laundering graph** (`src/licence_to_kill/laundering_graph.py`) —
-   models the Sanchez cartel's placement→layering→integration flow and
-   detects money-returning cycles, funnels, layering chains, and how
-   integrated (diluted) the placed dirty value has become.
-2. **Vessel forensics** (`src/licence_to_kill/vessel_forensics.py`) —
-   computes IMO gross tonnage, hydrostatic displacement, and fuel endurance
-   from first principles and flags covert cargo on the Wavekrest-class
-   mothership.
-3. **Rogue-00 risk model** (`src/licence_to_kill/rogue_ops.py`) — exact
-   finite-horizon dynamic programming for a revoked-licence operation,
-   trading mission gain against escalating alert and blowback.
-4. **Narcotics-finance economics** (`src/licence_to_kill/narcotics_finance.py`) —
-   supply-chain price/purity ladder and cash physics (note mass/volume,
-   hold manifest feasibility, trips) behind the cartel's courier parcel.
-5. **Operations logistics** (`src/licence_to_kill/operations_logistics.py`) —
-   risk-adjusted Dijkstra routing, exact 0/1-knapsack gadget loadout, and
-   trip projection against fuel endurance.
-6. **Surveillance / watchlist** (`src/licence_to_kill/surveillance.py`) —
-   logistic detection risk over a covert-action sequence with exact (n ≤ 8)
-   and ratio-rule survival-optimal ordering.
+Franz Sanchez runs a cartel. Its cash is laundered from street placement
+through shell-front layering into legitimate banks; the proceeds move on a
+Wavekrest-class mothership; and the operator who pursues him does it with a
+**revoked 00 licence** — unsanctioned, escalating, exposed. Each of those is
+turned into a real algorithm rather than a themed stub, and the campaign
+those algorithms describe has to be physically affordable: the money has to
+fit in a hold, the hull has to reach Florida, and the operator has to stay
+uncompromised long enough to finish.
 
-All six are deterministic (seeded network, closed-form physics, exact DP),
-infrastructure-free, and exposed through a thin `MissionProvider` adapter
-(`src/licence_to_kill/mission.py`).
+| Film concept | Module | What it computes |
+|---|---|---|
+| Cartel money laundering | `laundering_graph.py` | Directed flow graph; DFS cycle detection, funnel/concentration analysis, dirty-flow propagation, integration score, mixing entropy, composite layering score, seeded network generator |
+| The Wavekrest mothership | `vessel_forensics.py` | IMO 1969 gross tonnage, hydrostatic displacement, cubic-law fuel endurance, route plausibility, and a forensic anomaly scan that catches contraband by cargo density and draft mismatch |
+| The revoked licence | `rogue_ops.py` | Finite-horizon MDP over (alert, exposure) with a logistic blowback hazard, solved exactly by backward induction |
+| The opening cash intercept | `narcotics_finance.py` | Supply-chain price/purity ladder and US-note cash physics — mass, volume, bulk density, hold-manifest feasibility, trips required |
+| Moving the operation | `operations_logistics.py` | Risk-adjusted Dijkstra routing (−ln(1−r) survival weights), exact 0/1-knapsack gadget loadout, fuel-endurance voyage projection with refuelling |
+| Staying uncompromised | `surveillance.py` | Logistic detection hazard over a covert-action sequence, product-survival, exact and ratio-rule survival-optimal ordering, compromise timing |
+
+Supporting modules:
+
+| Module | Role |
+|---|---|
+| `mission.py` | The **only** module importing `bond_api` — the five-stage `MissionProvider` adapter, the gadget registry, deterministic provenance |
+| `manuscript_variables.py` | `{{TOKEN}}` hydration: every number the manuscript prints, computed fresh |
+| `figures/plots.py` | Four byte-deterministic matplotlib figures |
+
+Everything is exact or closed-form — seeded generation, analytic physics,
+exact dynamic programming, exact shortest path and knapsack, exhaustive
+permutation search. There is no Monte Carlo anywhere in the package.
 
 ## Quick start
 
 ```bash
-# Install (binds bond-api via its path dependency)
+# Install (binds bond-api via its local path dependency)
 uv sync --extra dev
 
-# Gate: tests + ≥ 90 % coverage
+# The gate: tests + >= 90 % line and branch coverage on src/
 uv run pytest tests/ --cov=src --cov-fail-under=90
 
-# Drive the mission (thin CLIs)
+# Drive the mission (thin phase CLIs)
 uv run python scripts/00_preflight.py
 uv run python scripts/mission_brief.py
-uv run python scripts/mission_execute.py       # writes output/data/mission_outcome.json
+uv run python scripts/mission_recon.py
+uv run python scripts/mission_plan.py
+uv run python scripts/mission_execute.py      # writes output/data/mission_outcome.json
 uv run python scripts/mission_debrief.py
 
 # Hydrate the manuscript + figures (writes output/{data,manuscript,figures}/)
 uv run python scripts/z_generate_manuscript_variables.py
 ```
 
+## The MissionProvider surface
+
+`bond_api.discovery` finds this package by slug `licence_to_kill`, imports
+`licence_to_kill.mission`, and instantiates `MissionProvider()` with no
+arguments. Three surfaces are **frozen** — `bond-cli`, the coordinator, and
+the orchestrator consume them across package boundaries:
+
+```python
+from licence_to_kill.mission import GADGET_REGISTRY, MissionProvider, run_rogue_mission
+
+provider = MissionProvider()          # no-arg construction is part of the contract
+brief    = provider.brief()           # 6 objectives, 6 assets, determinism constraint
+report   = provider.recon(ReconRequest(goal="survey the network"))
+plan     = provider.plan(brief)       # 7 steps: 6 domains + verify
+outcome  = provider.execute(plan)     # results per domain + seed + sha256 input_hash
+debrief  = provider.debrief(outcome)  # 7 standing lessons
+```
+
+`GADGET_REGISTRY` registers eight entries under the film slug — seven
+callables (`laundering_analyzer`, `laundering_network`, `vessel_forensics`,
+`rogue_risk_model`, `narcotics_finance`, `operations_router`,
+`surveillance_model`) plus a `network_manifest` payload. Changes must be
+additive.
+
+Every `MissionOutcome` carries `Provenance` with the package version,
+`seed = 0`, `wall_time_s = 0.0`, and a sha256 `input_hash` over the
+canonical inputs of all six domains — so any outcome can be audited without
+re-running it.
+
 ## Layout
 
 ```
 src/licence_to_kill/
-  laundering_graph.py      # Sanchez laundering graph (cycle/funnel/integration)
-  vessel_forensics.py      # Wavekrest-class forensic physics
-  rogue_ops.py             # revoked-licence risk DP
-  narcotics_finance.py     # supply-chain price/purity + cash physics
-  operations_logistics.py  # Dijkstra routing + gadget knapsack + trip plan
-  surveillance.py          # watchlist detection + survival-optimal ordering
-  mission.py               # bond-api MissionProvider adapter + gadget registry
-  manuscript_variables.py
-  figures/plots.py         # 4 deterministic figures
-scripts/                   # thin phase CLIs (brief/recon/plan/execute/debrief) + preflight + z_generate
-tests/                     # zero-mock, real-data, 99 %+ line & branch coverage
-manuscript/                # token-driven ROGUE manuscript + config.yaml + references.bib
-docs/                      # agent instructions, architecture, testing philosophy
+  laundering_graph.py       # Sanchez laundering graph (cycles, funnels, integration)
+  vessel_forensics.py       # Wavekrest-class forensic physics
+  rogue_ops.py              # revoked-licence policy DP
+  narcotics_finance.py      # price/purity ladder + cash physics
+  operations_logistics.py   # Dijkstra routing + gadget knapsack + voyage plan
+  surveillance.py           # watchlist detection + survival-optimal ordering
+  mission.py                # bond-api MissionProvider adapter + gadget registry
+  manuscript_variables.py   # {{TOKEN}} hydration
+  figures/plots.py          # four deterministic figures
+scripts/                    # thin phase CLIs + preflight + manuscript generation
+tests/                      # zero-mock, real-data suite
+manuscript/                 # token-driven ROGUE manuscript, config.yaml, references.bib
+docs/                       # agent rules, architecture, testing philosophy
+output/                     # regenerable artifacts (git-ignored)
 ```
+
+Each domain declares its scenario once, in a `canonical_*_params()`
+function. The mission adapter, the token generator, and the figure
+generators all read those functions, and the `mission:` block of
+`manuscript/config.yaml` is a declared mirror that
+`tests/test_canonical_params.py` asserts equal — so a figure cannot depict a
+scenario the prose does not describe.
 
 ## Verification
 
 ```bash
-uv run pytest tests/ --cov=src --cov-fail-under=90   # 124 tests, ~99.6 % line+branch
-uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
+uv run pytest tests/ --cov=src --cov-fail-under=90      # gate: >= 90 % line + branch
+uv run ruff check src/ scripts/ tests/
+uv run ruff format --check src/ scripts/ tests/
 uv run mypy src/ scripts/
 ```
 
-This is a local-only working tree: there is no remote and it is never pushed.
+Coverage and test counts are deliberately not quoted here — the gate above
+is the claim. The current measured figures, with the date they were taken,
+are in [`TODO.md`](TODO.md).
+
+## Notes
+
+Local-only working tree: there is no remote and it is never pushed. Author:
+Daniel Ari Friedman (Active Inference Institute). Start with
+[`docs/agent_instructions.md`](docs/agent_instructions.md) before changing
+anything.

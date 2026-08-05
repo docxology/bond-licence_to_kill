@@ -4,8 +4,8 @@
 # src/licence_to_kill/manuscript_variables.py) to hydrate manuscript tokens.
 
 paper:
-  title: "Licence to Kill: ROGUE — Special-Agent Mission Software for Money-Laundering, Vessel-Forensic, and Rogue-Operation Analysis"
-  subtitle: "Deterministic graph, physics, and dynamic-programming modelling of an unsanctioned operation"
+  title: "Licence to Kill: ROGUE — Special-Agent Mission Software for Laundering-Graph, Vessel-Forensic, Rogue-Policy, Narcotics-Finance, Logistics, and Surveillance Analysis"
+  subtitle: "Six deterministic domains — graph detection, marine physics, dynamic programming, cash economics, risk-adjusted routing, and survival-optimal scheduling — behind one unsanctioned operation"
   version: "0.1.0"
 
 authors:
@@ -30,6 +30,7 @@ keywords:
   - "layering"
   - "integration"
   - "financial-flow graph"
+  - "cycle detection"
   - "vessel forensics"
   - "gross tonnage"
   - "marine physics"
@@ -37,6 +38,14 @@ keywords:
   - "escalation"
   - "blowback"
   - "dynamic programming"
+  - "narcotics finance"
+  - "cash physics"
+  - "supply-chain price ladder"
+  - "risk-adjusted routing"
+  - "Dijkstra shortest path"
+  - "0/1 knapsack"
+  - "surveillance detection model"
+  - "survival-optimal scheduling"
   - "deterministic modelling"
   - "reproducible research"
 
@@ -58,8 +67,24 @@ testing:
   max_infra_test_failures: 0
   max_project_test_failures: 0
 
-# Canonical ROGUE analysis parameters — the single declarative source the
-# core modules and manuscript variables draw from.
+# Canonical ROGUE analysis parameters.
+#
+# READ THIS BEFORE EDITING. The *executable* source of truth is the set of
+# `canonical_*_params()` functions in the pure domain core:
+#
+#   laundering    → src/licence_to_kill/laundering_graph.py
+#   vessel        → src/licence_to_kill/vessel_forensics.py
+#   rogue         → src/licence_to_kill/rogue_ops.py
+#   finance       → src/licence_to_kill/narcotics_finance.py
+#   logistics     → src/licence_to_kill/operations_logistics.py
+#   surveillance  → src/licence_to_kill/surveillance.py
+#
+# The domain core is deliberately dependency-free (stdlib + numpy) and does
+# NOT read YAML, so this block is the *declared mirror* of those functions,
+# not their input. It is not decorative: every key below is asserted equal to
+# the corresponding canonical value by tests/test_canonical_params.py, which
+# fails the suite if the two ever drift. Change the Python first, then this
+# block.
 mission:
   film: "licence_to_kill"
   codename: "ROGUE"
@@ -70,24 +95,39 @@ mission:
     max_depth: 8
     max_cycles: 50
     max_paths: 200
+    funnel_threshold: 1.5
   vessel:
     profile: "Wavekrest"
+    cargo_volume_m3: 520.0
+    block_coefficient: 0.62
+    max_speed_knots: 12.5
     observed:
       cargo_mass_t: 900.0
       declared_displacement_t: 700.0
   rogue:
     horizon: 10
     alert_max: 10
+    exposure_cap: 20
     actions: ["stealth", "covert", "overt"]
   finance:
     value_usd: 5000000.0
     denomination: 100.0
     purity: 0.6
+    base_cost_per_kg: 1500.0
+    hold_volume_m3: 520.0
+    hold_mass_kg: 300000.0
+    stages: ["export", "wholesale", "street"]
   logistics:
     origin: "IC"
     destination: "FL"
     capacity_kg: 25.0
+    speed_knots: 10.0
     endurance_nm: 4257.0
+    refuel_hours: 24.0
   surveillance:
     actions: 5
     detection_threshold: 0.5
+    beta_0: -4.0
+    beta_watch: 1.2
+    beta_signature: 1.5
+    exact_limit: 8

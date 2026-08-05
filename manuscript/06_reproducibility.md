@@ -10,8 +10,14 @@ The ROGUE mission is deterministic by construction:
   `seed 0` reproduces an identical edge set and that a different seed
   changes it.
 - **No random draws in the detectors.** Cycle, funnel, dirty-flow,
-  integration, entropy, forensic-physics, and dynamic-programming routines
-  are pure arithmetic.
+  integration, entropy, forensic-physics, dynamic-programming, routing,
+  knapsack, and surveillance-ordering routines are pure arithmetic.
+- **One declaration per scenario.** The mission adapter, the manuscript
+  token generator, and the figure generators all read the same
+  `canonical_*_params()` functions, and `tests/test_canonical_params.py`
+  asserts the mission outcome and the manuscript analyses are equal
+  report-for-report. A figure cannot depict inputs the prose does not
+  describe.
 - **No wall-clock in persisted outputs.** Provenance `wall_time_s` is fixed
   at `0.0`; the only time-sensitive artifact is the `GENERATION_TIMESTAMP`
   diagnostic, which is explicitly excluded from byte reproducibility.
@@ -31,9 +37,10 @@ film: re-compute the hash over the same inputs and it must match.
 ## Test coverage
 
 The source tree is covered well above the enforced 90 % line + branch floor
-(`uv run pytest tests/ --cov=src --cov-fail-under=90`). Coverge levels and the
-live test count are tracked in the shared monorepo
-`docs/_generated/COUNTS.md` and are never hard-coded here.
+(`uv run pytest tests/ --cov=src --cov-fail-under=90`). Coverage levels and
+the live test count are deliberately not quoted here — the gate is the
+claim, and the measured figure belongs in `TODO.md`'s dated verification
+record, where it can be checked against a command rather than trusted.
 
 ## Artifacts
 

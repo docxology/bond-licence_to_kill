@@ -17,16 +17,20 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
 
 __all__ = [
+    "CARGO_DENSITY_CEILING",
     "DIESEL_DENSITY",
     "DIESEL_SFC",
+    "DISPLACEMENT_TOLERANCE",
+    "POWER_DENSITY_CEILING",
     "SEAWATER_DENSITY",
     "VesselForensicReport",
     "VesselProfile",
     "WAVEKREST_CLASS",
     "anomaly_scan",
+    "canonical_vessel_params",
     "displacement_from_draft",
     "endurance_range_nm",
     "forensic_report",
@@ -50,6 +54,12 @@ KMH_PER_KNOT = 1.852
 #: Gross-tonnage empirical parameter K1 (IMO formula K1 = 0.2 + 0.02 log10 V).
 _GT_K1_BASE = 0.2
 _GT_K1_FACTOR = 0.02
+#: Bulk-density ceiling for boxed fish, t/m³ — above this the cargo is not fish.
+CARGO_DENSITY_CEILING = 1.4
+#: Allowed relative gap between declared and draft-predicted displacement.
+DISPLACEMENT_TOLERANCE = 0.15
+#: Installed-power ceiling for a genuine fishing hull, kW per m³ of hull volume.
+POWER_DENSITY_CEILING = 2.0
 
 
 @dataclass(frozen=True)
@@ -168,6 +178,11 @@ def anomaly_scan(
 
     Lower bound of anomaly-score is normalised so that a clean vessel ≈ 0 and
     every flagged check adds a unit weight.
+
+    Raises:
+        ValueError: if ``distance_nm``/``duration_h`` are supplied and the
+            profile cannot support an endurance computation (non-positive
+            ``max_speed_knots``) or the declared duration is non-positive.
     """
     obs: dict[str, float] = dict(observed or {})
     flags: list[str] = []
@@ -176,7 +191,7 @@ def anomaly_scan(
     # 1. Cargo bulk-density plausibility (contraband is denser than fish).
     if "cargo_mass_t" in obs:
         density = obs["cargo_mass_t"] / profile.cargo_volume_m3 if profile.cargo_volume_m3 > 0 else 0.0
-        if density > 1.4:
+        if density > CARGO_DENSITY_CEILING:
             flags.append(f"implausibly dense cargo ({density:.2f} t/m3) — not boxed fish")
             score += 1.0
 
@@ -184,27 +199,34 @@ def anomaly_scan(
     if "declared_displacement_t" in obs:
         predicted = displacement_from_draft(profile)
         declared = obs["declared_displacement_t"]
-        if abs(declared - predicted) / max(predicted, 1e-9) > 0.15:
-            flags.append(f"declared displacement {declared:.0f} t differs >15% from draft-predicted {predicted:.0f} t")
+        if abs(declared - predicted) / max(predicted, 1e-9) > DISPLACEMENT_TOLERANCE:
+            flags.append(
+                f"declared displacement {declared:.0f} t differs "
+                f">{DISPLACEMENT_TOLERANCE:.0%} from draft-predicted {predicted:.0f} t"
+            )
             score += 1.0
 
     # 3. Endurance vs a declared voyage (fuel must cover distance).
+    #
+    # ``endurance_range_nm`` is called unguarded on purpose: it raises
+    # ``ValueError`` only for a structurally invalid profile (non-positive
+    # ``max_speed_knots``), and a forensic scan must not silently downgrade an
+    # invalid profile to "no endurance anomaly". ``forensic_report`` calls the
+    # same function unguarded, so swallowing here would only make
+    # ``anomaly_scan`` disagree with the report built from it.
     if distance_nm is not None and duration_h is not None:
         plausible, _, reason = route_plausibility(profile, distance_nm, duration_h)
         if not plausible:
             flags.append(reason)
             score += 1.5
-        try:
-            endurance = endurance_range_nm(profile)
-        except ValueError:
-            endurance = 0.0
+        endurance = endurance_range_nm(profile)
         if endurance > 0.0 and distance_nm > endurance:
             flags.append(f"declared voyage {distance_nm:.0f} nm exceeds fuel endurance {endurance:.0f} nm")
             score += 1.5
 
     # 4. Engine power anomaly: a real trawler is not over-horsepowered for its hull.
     power_density = profile.engine_kw / hull_volume(profile) if hull_volume(profile) > 0 else 0.0
-    if power_density > 2.0:
+    if power_density > POWER_DENSITY_CEILING:
         flags.append(f"high power density ({power_density:.2f} kW/m3) for a fishing hull")
         score += 1.0
 
@@ -256,3 +278,22 @@ def forensic_report(
         anomalies=anomalies,
         anomaly_score=score,
     )
+
+
+def canonical_vessel_params() -> dict[str, Any]:
+    """Single source of truth for the canonical Wavekrest-class forensic case.
+
+    The observed quantities are the two that expose covert modification in
+    the film: a hold far denser than boxed fish, and a declared displacement
+    well below the draft-predicted value. Mirrors the ``mission.vessel``
+    block of ``manuscript/config.yaml`` (bound by
+    ``tests/test_canonical_params.py``) and is consumed by ``mission.py``,
+    ``manuscript_variables.py``, and ``figures/plots.py``.
+    """
+    return {
+        "profile": WAVEKREST_CLASS,
+        "observed": {
+            "cargo_mass_t": 900.0,
+            "declared_displacement_t": 700.0,
+        },
+    }

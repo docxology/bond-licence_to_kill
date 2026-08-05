@@ -17,15 +17,18 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any, Sequence
 
 __all__ = [
     "RogueModel",
     "RogueReport",
+    "alert_increment",
     "blowback_probability",
     "build_rogue_model",
+    "canonical_rogue_params",
     "escalation_path",
     "expected_value_of_policy",
+    "next_alert",
     "solve_optimal_policy",
 ]
 
@@ -87,6 +90,30 @@ def build_rogue_model(horizon: int = 10, alert_max: int = 10) -> RogueModel:
     )
 
 
+def alert_increment(model: RogueModel, action_idx: int) -> int:
+    """Integral alert step an action contributes on the DP's alert lattice.
+
+    The dynamic program in :func:`solve_optimal_policy` optimises over the
+    *integer* alert states ``0 .. alert_max``, so the visibility ladder is
+    quantised by truncation onto that lattice. This function is the single
+    definition of that transition; :func:`escalation_path` and
+    :func:`expected_value_of_policy` use it too, so the projected escalation
+    curve is the curve the DP actually optimised rather than a differently
+    quantised one.
+
+    Consequence worth knowing: a visibility below 1.0 (the canonical
+    ``stealth`` action at 0.5) contributes **no** alert on this lattice. That
+    is a documented modelling boundary of the integer lattice, not an
+    accident — see ``manuscript/07_scope_and_related_work.md``.
+    """
+    return int(model.visibility[action_idx])
+
+
+def next_alert(alert: float, model: RogueModel, action_idx: int) -> float:
+    """Alert level after taking ``action_idx``, clamped at ``alert_max``."""
+    return float(min(model.alert_max, alert + alert_increment(model, action_idx)))
+
+
 def blowback_probability(alert: float, exposure: float, model: RogueModel) -> float:
     """Logistic blowback hazard: P(retaliation) = σ(β₀ + β_a·alert + β_e·exposure)."""
     z = model.beta_0 + model.beta_alert * alert + model.beta_exposure * exposure
@@ -112,7 +139,7 @@ def escalation_path(model: RogueModel, actions_indices: Sequence[int]) -> tuple[
                 "blowback": hazard,
             }
         )
-        alert = min(float(model.alert_max), alert + model.visibility[action_idx])
+        alert = next_alert(alert, model, action_idx)
         exposure += model.exposure_step
     return tuple(path)
 
@@ -129,7 +156,7 @@ def expected_value_of_policy(
         gain = model.gain[action_idx]
         cost = model.escalation_loss * exposure
         value += gain * (1.0 - hazard) - hazard * model.loss_on_blowback - cost
-        alert = min(float(model.alert_max), alert + model.visibility[action_idx])
+        alert = next_alert(alert, model, action_idx)
         exposure += model.exposure_step
     return value, escalation_path(model, actions_indices)
 
@@ -163,11 +190,18 @@ class RogueReport:
 def solve_optimal_policy(model: RogueModel) -> RogueReport:
     """Backward-induction DP over the (t, alert, exposure) state lattice.
 
-    Exposure is quantised to an integer lattice (``exposure_cap + 1`` cells,
-    each ``exposure_step`` wide). Returns the exact optimal expected value,
-    the first-period optimal action, and the escalation curve that follows
-    from following the optimal policy greedily thereafter. Deterministic;
-    argmax tie-breaks to the first action.
+    Both state dimensions are quantised: exposure onto an integer lattice
+    (``exposure_cap + 1`` cells, each ``exposure_step`` wide) and alert onto
+    ``0 .. alert_max`` via the shared :func:`next_alert` transition. Because
+    the projection functions use the same transition, replaying the returned
+    action sequence through :func:`expected_value_of_policy` reproduces
+    ``optimal_value`` exactly (pinned by
+    ``tests/test_rogue_ops.py::test_dp_value_equals_replayed_optimal_sequence``).
+
+    Returns the exact optimal expected value, the first-period optimal
+    action, and the escalation curve that follows from following the optimal
+    policy greedily thereafter. Deterministic; argmax tie-breaks to the first
+    action.
     """
     horizon, alert_max = model.horizon, model.alert_max
     exposure_cap = model.exposure_cap
@@ -190,7 +224,7 @@ def solve_optimal_policy(model: RogueModel) -> RogueReport:
                 best_action = 0
                 for action_idx in range(n_actions):
                     hazard = blowback_probability(float(alert), exposure, model)
-                    alert_next = min(alert_max, alert + int(model.visibility[action_idx]))
+                    alert_next = int(next_alert(float(alert), model, action_idx))
                     e_next = min(exposure_cap, e + 1)
                     immediate = (
                         model.gain[action_idx] * (1.0 - hazard)
@@ -216,7 +250,7 @@ def solve_optimal_policy(model: RogueModel) -> RogueReport:
     for layer in reversed(policy):
         action_idx = layer[alert][e]
         action_seq.append(action_idx)
-        alert = min(alert_max, alert + int(model.visibility[action_idx]))
+        alert = int(next_alert(float(alert), model, action_idx))
         e = min(exposure_cap, e + 1)
     escalation = escalation_path(model, action_seq)
     peak_blowback = max((float(step["blowback"]) for step in escalation), default=0.0)
@@ -231,3 +265,20 @@ def solve_optimal_policy(model: RogueModel) -> RogueReport:
         peak_blowback=peak_blowback,
         policy_cells=len(policy) * (alert_max + 1) * (exposure_cap + 1),
     )
+
+
+def canonical_rogue_params() -> dict[str, Any]:
+    """Single source of truth for the canonical revoked-licence scenario.
+
+    Mirrors the ``mission.rogue`` block of ``manuscript/config.yaml`` (bound
+    by ``tests/test_canonical_params.py``) and is consumed by ``mission.py``,
+    ``manuscript_variables.py``, and ``figures/plots.py``.
+    """
+    model = build_rogue_model()
+    return {
+        "model": model,
+        "horizon": model.horizon,
+        "alert_max": model.alert_max,
+        "actions": model.actions,
+        "exposure_cap": model.exposure_cap,
+    }

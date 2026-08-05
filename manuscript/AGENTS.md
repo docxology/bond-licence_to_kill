@@ -34,7 +34,9 @@ prose is an injected token, never handwritten.
 
 1. Add/replace a token value in `generate_variables()`.
 2. Reference it in prose as `{{TOKEN}}`.
-3. `tests/test_manuscript_variables.py::test_all_manuscript_tokens_are_generated`
-   gates completeness automatically.
+3. Four gates in `tests/test_manuscript_variables.py` enforce it
+   automatically: every cited token must be generated, every generated token
+   must be cited, every declared parameter must reach prose as a token
+   carrying its canonical value, and no `{{...}}` may survive substitution.
 4. Re-run `scripts/z_generate_manuscript_variables.py` to regenerate
    `output/manuscript/*.md`.

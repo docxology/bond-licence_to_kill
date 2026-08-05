@@ -6,6 +6,8 @@ the canonical proof that figure generation is deterministic.
 
 from __future__ import annotations
 
+import pytest
+
 from licence_to_kill.figures.plots import (
     generate_figures,
     plot_laundering_network,
@@ -13,6 +15,7 @@ from licence_to_kill.figures.plots import (
     plot_rogue_escalation,
     plot_vessel_forensic_scan,
 )
+from licence_to_kill.operations_logistics import MissionLeg, canonical_logistics_params
 
 
 def test_generate_figures_produces_all(tmp_path):
@@ -41,3 +44,29 @@ def test_individual_plotters_return_paths(tmp_path):
     assert plot_rogue_escalation(tmp_path).exists()
     assert plot_vessel_forensic_scan(tmp_path).exists()
     assert plot_operations_logistics(tmp_path).exists()
+
+
+def test_operations_figure_rejects_unreachable_destination(tmp_path):
+    """The unreachable-destination guard must actually be able to fire.
+
+    A guard that no input can trigger is indistinguishable from no guard at
+    all, so the plotter takes an injectable ``params`` and this exercises the
+    failure branch on a network whose destination has no inbound leg.
+    """
+    params = dict(canonical_logistics_params())
+    # FL is a known node (it is the HK leg's destination) but no path leads
+    # to it from IC — so shortest_path returns None rather than raising for
+    # an unknown node, which is the branch under test.
+    params["legs"] = (
+        MissionLeg("IC", "BOG", 900.0, 8_000.0, 0.04),
+        MissionLeg("HK", "FL", 8700.0, 150_000.0, 0.12),
+    )
+    with pytest.raises(ValueError, match="unreachable"):
+        plot_operations_logistics(tmp_path, params=params)
+
+
+def test_operations_figure_accepts_injected_params_equivalently(tmp_path):
+    """Passing the canonical params explicitly renders the same bytes."""
+    default = plot_operations_logistics(tmp_path / "default")
+    injected = plot_operations_logistics(tmp_path / "injected", params=canonical_logistics_params())
+    assert default.read_bytes() == injected.read_bytes()

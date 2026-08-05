@@ -10,30 +10,42 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 # Headless backend must be selected before pyplot is imported.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402  (backend set above)
 
-from licence_to_kill.laundering_graph import analyze_laundering, build_sanchez_network
+from licence_to_kill.laundering_graph import (
+    analyze_laundering,
+    build_sanchez_network,
+    canonical_laundering_params,
+)
 from licence_to_kill.operations_logistics import (
     OperationNetwork,
     canonical_logistics_params,
     shortest_path,
 )
-from licence_to_kill.rogue_ops import build_rogue_model, solve_optimal_policy
-from licence_to_kill.vessel_forensics import WAVEKREST_CLASS, forensic_report
+from licence_to_kill.rogue_ops import canonical_rogue_params, solve_optimal_policy
+from licence_to_kill.vessel_forensics import canonical_vessel_params, forensic_report
 
-__all__ = ["generate_figures", "plot_laundering_network", "plot_rogue_escalation"]
+__all__ = [
+    "generate_figures",
+    "plot_laundering_network",
+    "plot_operations_logistics",
+    "plot_rogue_escalation",
+    "plot_vessel_forensic_scan",
+]
 
-_SOURCES = ("S1", "S2", "S3")
-_SINKS = ("B1", "B2", "B3", "B4")
-_SEED = 0
-_VESSEL_OBSERVED: dict[str, float] = {
-    "cargo_mass_t": 900.0,
-    "declared_displacement_t": 700.0,
-}
+#: Canonical inputs — the same single sources ``mission.py`` and
+#: ``manuscript_variables.py`` consume, so a figure can never depict a
+#: different scenario than the one the manuscript reports.
+_LAUNDERING = canonical_laundering_params()
+_VESSEL = canonical_vessel_params()
+_SOURCES: tuple[str, ...] = _LAUNDERING["sources"]
+_SINKS: tuple[str, ...] = _LAUNDERING["sinks"]
+_SEED: int = int(_LAUNDERING["seed"])
 
 
 def _layers() -> dict[str, int]:
@@ -51,7 +63,15 @@ def _layers() -> dict[str, int]:
 def plot_laundering_network(outdir: Path) -> Path:
     """Render the Sanchez flow graph coloured by dirty fraction at each node."""
     graph = build_sanchez_network(seed=_SEED)
-    analyze_laundering(graph, _SOURCES, _SINKS)
+    analyze_laundering(
+        graph,
+        _SOURCES,
+        _SINKS,
+        max_depth=int(_LAUNDERING["max_depth"]),
+        max_cycles=int(_LAUNDERING["max_cycles"]),
+        max_paths=int(_LAUNDERING["max_paths"]),
+        funnel_threshold=float(_LAUNDERING["funnel_threshold"]),
+    )
     injections = {s: float(graph.out_amount(s)) for s in _SOURCES}
     dirty = graph.propagate_dirty(injections)
     total = max(sum(dirty.values()), 1e-9)
@@ -101,8 +121,7 @@ def plot_laundering_network(outdir: Path) -> Path:
 
 def plot_rogue_escalation(outdir: Path) -> Path:
     """Render the optimal rogue-00 policy: alert, exposure and blowback hazard v step."""
-    model = build_rogue_model()
-    report = solve_optimal_policy(model)
+    report = solve_optimal_policy(canonical_rogue_params()["model"])
     steps = []
     for entry in report.escalation:
         steps.append(
@@ -146,7 +165,7 @@ def plot_rogue_escalation(outdir: Path) -> Path:
 #: Canonical vessel figure so the mission's third domain is visualised too.
 def plot_vessel_forensic_scan(outdir: Path) -> Path:
     """Render the Wavekrest-class forensic profile and its flagged anomalies."""
-    vessel = forensic_report(WAVEKREST_CLASS, observed=_VESSEL_OBSERVED)
+    vessel = forensic_report(_VESSEL["profile"], observed=_VESSEL["observed"])
     fig, ax = plt.subplots(figsize=(7, 4.5))
     labels = ["hull volume", "gross tonnage", "fuel (t)", "displacement"]
     values = [
@@ -171,13 +190,22 @@ def plot_vessel_forensic_scan(outdir: Path) -> Path:
     return path
 
 
-def plot_operations_logistics(outdir: Path) -> Path:
-    """Render the operations network with the risk-optimal route highlighted."""
-    params = canonical_logistics_params()
+def plot_operations_logistics(outdir: Path, params: dict[str, Any] | None = None) -> Path:
+    """Render the operations network with the risk-optimal route highlighted.
+
+    ``params`` defaults to :func:`canonical_logistics_params`; it is
+    injectable so the unreachable-destination guard below is reachable from a
+    test rather than being a branch that can never fire.
+    """
+    params = canonical_logistics_params() if params is None else params
     network = OperationNetwork(params["legs"])
     optimal = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="risk")
     direct = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="distance")
-    assert optimal is not None and direct is not None
+    # Explicit raise rather than `assert`: assertions are stripped under -O,
+    # which would turn an unreachable destination into an AttributeError deep
+    # inside the plotting code instead of a named failure here.
+    if optimal is None or direct is None:
+        raise ValueError(f"{params['destination']!r} is unreachable from {params['origin']!r} in the canonical network")
 
     # Deterministic hub layout (left → right by operational stage).
     positions = {"IC": (0.0, 0.0), "BOG": (0.8, -1.2), "HK": (2.2, 0.6), "FL": (3.4, 0.0)}
