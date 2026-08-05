@@ -1,6 +1,7 @@
 {
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
+  "description": "Source code for licence_to_kill (ROGUE): deterministic special-agent mission software spanning six domain cores — money-laundering-graph analysis, vessel-forensic analysis, rogue-operation risk modelling, narcotics-finance economics, operations logistics (routing, gadget knapsack, voyage planning), and surveillance/watchlist scheduling.",
   "author": [
     {
       "@id": "https://orcid.org/0000-0001-6232-9096",

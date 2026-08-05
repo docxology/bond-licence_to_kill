@@ -7,15 +7,15 @@ the README and AGENTS.md point at instead of quoting stale numbers.
 
 ## Verification record
 
-Measured 2026-08-04 on this tree, Python 3.14.6 / NumPy 2.4.2:
+Measured 2026-08-05 on this tree, Python 3.14.6 / NumPy 2.4.2:
 
 | Command | Result |
 |---|---|
-| `uv run pytest tests/ --cov=src --cov-fail-under=90` | **162 passed**, 0 failed, 0 skipped — **100.00 %** line + branch on `src/` (all nine modules at 100 %) |
+| `uv run pytest tests/ --cov=src --cov-fail-under=90` | **191 passed**, 0 failed, 0 skipped — **100.00 %** line + branch on `src/` (all nine modules at 100 %) |
 | `uv run ruff check src/ scripts/ tests/` | clean |
 | `uv run ruff format --check src/ scripts/ tests/` | clean (39 files) |
 | `uv run mypy src/ scripts/` | clean (20 source files) |
-| `uv run python scripts/z_generate_manuscript_variables.py` | 107 tokens, 4 figures, 9 rendered sections |
+| `uv run python scripts/z_generate_manuscript_variables.py` | 108 tokens, 4 figures, 9 rendered sections |
 
 Re-measure rather than trust this table; it is a record of one run, not a
 standing guarantee. The standing guarantee is the `--cov-fail-under=90`
@@ -44,6 +44,15 @@ gate.
   structures against each other but meaningless as an absolute. A
   sensitivity sweep over the weight simplex would at least bound how much
   the ranking depends on them.
+- **The canonical gadget instance does not discriminate exact from greedy.**
+  The exact 0/1-knapsack DP and a greedy value-density pass select the same
+  five items at the same value and weight on the canonical set, so the
+  campaign data cannot demonstrate the DP's advantage; the advantage is
+  demonstrated on a constructed counterexample instead
+  (`test_greedy_value_density_is_suboptimal_on_a_counterexample`). A
+  canonical gadget set on which the two genuinely diverge would let the
+  manuscript make the point from the film's own data. Both facts are pinned
+  by tests so the prose cannot re-inflate the claim.
 - **Per-leg interdiction risks are independent and static.** The route
   survival product assumes independence across legs, which is the least
   defensible assumption in `operations_logistics.py`. A correlated-risk

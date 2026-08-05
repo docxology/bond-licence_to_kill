@@ -67,17 +67,27 @@ dynamic program evaluates **{{ROGUE_POLICY_CELLS}}** state cells and returns:
   the final step, when there is no remaining future for the raised alert to
   damage — the classic finite-horizon end effect, arrived at here without
   being written in;
-- a **peak alert** of **{{ROGUE_PEAK_ALERT}}** and a **peak blowback
-  hazard** of **{{ROGUE_PEAK_BLOWBACK}}**, reached on the last step
-  (@fig:rogue). Under the optimal policy the hazard is driven almost
-  entirely by *accumulated exposure* rather than by adversary alert: on the
-  integer alert lattice the stealth intensity's visibility rounds to no
-  alert increase at all, so the operator's growing risk is simply time in
-  the field. That is a boundary of the quantisation, not a claim that
-  stealth is free — Section 7 states it plainly.
+- a **peak blowback hazard** of **{{ROGUE_PEAK_BLOWBACK}}**, reached on the
+  last step, and a **peak alert** of **{{ROGUE_PEAK_ALERT}}** —
+  the level the closing overt action *leaves behind*, which is therefore
+  also the terminal alert ({{ROGUE_TERMINAL_ALERT}}) (@fig:rogue). Read
+  those two numbers carefully, because they say different things. No step
+  in the horizon is ever exposed to that alert: it is raised by the final
+  action and the mission then ends, which is exactly why the dynamic
+  program is willing to buy it. Every step the operator actually faces is
+  *entered* at alert 0, so the hazard he faces climbs on **accumulated
+  exposure** alone — on the integer alert lattice the stealth intensity's
+  visibility rounds to no alert increase at all. That is a boundary of the
+  quantisation, not a claim that stealth is free — Section 7 states it
+  plainly. The distinction is not cosmetic: a peak taken over the alert
+  each step is entered with would report a flat zero for this policy and
+  read as "the optimum never escalates", which is false.
 
-![Rogue-00 escalation: alert/exposure build while the blowback hazard climbs
-under the optimal policy.](figures/rogue_escalation.png){#fig:rogue}
+![Rogue-00 escalation under the optimal policy. Two alert series are drawn:
+the level each step is *entered* with (flat at zero here) and the level each
+step's own action *leaves behind* — the second is the only one that shows
+the closing overt escalation. Exposure and the blowback hazard climb
+throughout.](figures/rogue_escalation.png){#fig:rogue}
 
 ## 3.4 Narcotics-finance economics
 
@@ -113,8 +123,18 @@ loadout under a {{LOG_CAPACITY_KG}} kg budget selects
 **{{LOG_KNAPSACK_ITEMS}}** of {{LOG_GADGET_CANDIDATES}} candidates
 (including the Walther PPK, explosive charges, and the surveillance kit)
 worth **{{LOG_KNAPSACK_VALUE}}** mission points at
-**{{LOG_KNAPSACK_WEIGHT}} kg** — the exact optimum, not a greedy
-value-density pick.
+**{{LOG_KNAPSACK_WEIGHT}} kg**, computed by exact 0/1-knapsack dynamic
+programming over the full capacity lattice.
+
+On *this* instance that exactness buys nothing observable: a greedy
+value-density pass returns the same {{LOG_KNAPSACK_ITEMS}} items at the
+same value and the same weight, which
+`tests/test_operations_logistics.py::test_greedy_matches_exact_on_the_canonical_instance`
+records rather than hides. The claim being made for the DP is therefore not
+"it beat greedy here" — it did not — but that it is optimal on *every*
+instance, where greedy is not;
+`test_greedy_value_density_is_suboptimal_on_a_counterexample` exhibits an
+instance on which the greedy pass leaves value on the table.
 
 ![ROGUE operations network with the risk-optimal route highlighted against
 the direct single leg.](figures/operations_logistics.png){#fig:operations}

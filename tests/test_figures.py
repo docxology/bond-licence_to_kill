@@ -15,7 +15,12 @@ from licence_to_kill.figures.plots import (
     plot_rogue_escalation,
     plot_vessel_forensic_scan,
 )
-from licence_to_kill.operations_logistics import MissionLeg, canonical_logistics_params
+from licence_to_kill.operations_logistics import (
+    MissionLeg,
+    OperationNetwork,
+    canonical_logistics_params,
+    shortest_path,
+)
 
 
 def test_generate_figures_produces_all(tmp_path):
@@ -61,6 +66,26 @@ def test_operations_figure_rejects_unreachable_destination(tmp_path):
         MissionLeg("IC", "BOG", 900.0, 8_000.0, 0.04),
         MissionLeg("HK", "FL", 8700.0, 150_000.0, 0.12),
     )
+    with pytest.raises(ValueError, match="unreachable"):
+        plot_operations_logistics(tmp_path, params=params)
+
+
+def test_operations_figure_requires_a_real_direct_leg(tmp_path):
+    """The figure's baseline must be the direct leg, not a distance-minimal path.
+
+    Behavioural discriminator, not a comment: this network has a perfectly
+    good IC→HK→FL path but **no** direct IC→FL leg. Computing the baseline as
+    ``shortest_path(..., weight="distance")`` — what the plotter used to do —
+    finds the two-hop route, labels it "direct", and renders happily. Reading
+    the direct leg finds nothing and refuses. Reverting the plotter turns this
+    test red.
+    """
+    params = dict(canonical_logistics_params())
+    params["legs"] = (
+        MissionLeg("IC", "HK", 8300.0, 120_000.0, 0.10),
+        MissionLeg("HK", "FL", 8700.0, 150_000.0, 0.12),
+    )
+    assert shortest_path(OperationNetwork(params["legs"]), "IC", "FL", weight="distance") is not None
     with pytest.raises(ValueError, match="unreachable"):
         plot_operations_logistics(tmp_path, params=params)
 

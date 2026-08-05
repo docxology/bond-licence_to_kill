@@ -130,7 +130,12 @@ dollar cost, and an interdiction risk. `shortest_path` runs Dijkstra's
 algorithm [@dijkstra1959] over one of three additive weights; for risk the
 per-leg weight is $-\ln(1-r)$ so the cumulative survival product becomes a
 sum and the returned route minimizes the honest $1-\prod(1-r_i)$
-cumulative-risk metric. `gadget_knapsack` solves the 0/1 equipment-loadout
+cumulative-risk metric. The baseline that route is reported against is the
+**direct leg** itself — the single {{LOG_ORIGIN}}→{{LOG_DESTINATION}} edge,
+read straight out of the network by `direct_leg` — and not the
+distance-minimal path, which on this network happens to be that same leg
+and so cannot be told apart from it by inspection alone.
+`gadget_knapsack` solves the 0/1 equipment-loadout
 problem exactly by dynamic programming [@kellerer2004] over gram-scaled
 weights, selecting from {{LOG_GADGET_CANDIDATES}} candidate gadgets under a
 {{LOG_CAPACITY_KG}} kg budget; the per-item selection flag is recorded

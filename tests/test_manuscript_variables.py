@@ -14,15 +14,30 @@ import pytest
 
 from licence_to_kill.laundering_graph import canonical_laundering_params
 from licence_to_kill.narcotics_finance import canonical_finance_params
-from licence_to_kill.operations_logistics import canonical_logistics_params
-from licence_to_kill.rogue_ops import canonical_rogue_params
-from licence_to_kill.surveillance import EXACT_ORDER_LIMIT, canonical_surveillance_params
+from licence_to_kill.operations_logistics import (
+    MissionLeg,
+    OperationNetwork,
+    canonical_logistics_params,
+    direct_leg,
+    shortest_path,
+)
+from licence_to_kill.rogue_ops import canonical_rogue_params, solve_optimal_policy
+from licence_to_kill.surveillance import (
+    EXACT_ORDER_LIMIT,
+    analyze_surveillance,
+    canonical_surveillance_params,
+)
 from licence_to_kill.vessel_forensics import CARGO_DENSITY_CEILING, DISPLACEMENT_TOLERANCE
 
 from licence_to_kill.manuscript_variables import (
+    compromise_step_label,
+    direct_leg_risk,
     generate_variables,
+    last_escalation_action,
     load_mission_config,
+    order_endpoint,
     project_root,
+    risk_reduction,
     substitute,
 )
 
@@ -169,6 +184,111 @@ def test_no_section_leaves_an_unresolved_placeholder():
     for name, text in _numbered_sections().items():
         rendered = substitute(text, tokens)
         assert _TOKEN_RE.search(rendered) is None, f"{name} has an unresolved token after substitution"
+
+
+def test_direct_leg_risk_reads_the_direct_leg_not_the_shortest_path():
+    """The baseline is the direct leg itself, not whatever path is shortest.
+
+    Constructed counterexample: a two-hop path that is shorter in distance
+    than the direct leg. ``shortest_path(..., weight="distance")`` — what the
+    token used to be computed from — returns the two-hop route and its
+    pooled risk; the direct leg's own risk is a different number.
+    """
+    legs = (
+        MissionLeg("A", "B", 100.0, 1.0, 0.50),
+        MissionLeg("A", "C", 10.0, 1.0, 0.10),
+        MissionLeg("C", "B", 10.0, 1.0, 0.10),
+    )
+    network = OperationNetwork(legs)
+    assert direct_leg_risk(network, "A", "B") == pytest.approx(0.50)
+    distance_minimal = shortest_path(network, "A", "B", weight="distance")
+    assert distance_minimal is not None
+    assert distance_minimal.path == ("A", "C", "B")
+    assert distance_minimal.cumulative_risk == pytest.approx(0.19)
+
+
+def test_direct_leg_risk_raises_when_there_is_no_direct_leg():
+    """No direct leg is a loud failure, never a substituted default."""
+    network = OperationNetwork(
+        (
+            MissionLeg("A", "C", 10.0, 1.0, 0.10),
+            MissionLeg("C", "B", 10.0, 1.0, 0.10),
+        )
+    )
+    assert direct_leg(network, "A", "B") is None
+    with pytest.raises(ValueError, match="no direct leg"):
+        direct_leg_risk(network, "A", "B")
+
+
+def test_direct_baseline_is_not_computed_by_shortest_path():
+    """Lexical guard on the one binding the canonical data cannot discriminate.
+
+    On the canonical network the direct leg *is* the distance-minimal path,
+    so both implementations produce {{LOG_DIRECT_RISK}} = 0.300 and no
+    value-level assertion can tell them apart. The discriminating cases live
+    in ``test_direct_leg_risk_reads_the_direct_leg_not_the_shortest_path``
+    (semantics) and ``test_figures.py::test_operations_figure_requires_a_real_direct_leg``
+    (behaviour); this pins that the token generator does not quietly go back
+    to routing for its baseline.
+    """
+    source = (project_root() / "src" / "licence_to_kill" / "manuscript_variables.py").read_text(encoding="utf-8")
+    assert "shortest_path" not in source, "the direct-leg baseline must come from direct_leg, not from routing"
+    assert "direct_leg" in source
+
+
+def test_direct_risk_token_is_the_canonical_direct_leg():
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    params = canonical_logistics_params()
+    network = OperationNetwork(params["legs"])
+    expected = direct_leg_risk(network, str(params["origin"]), str(params["destination"]))
+    assert tokens["LOG_DIRECT_RISK"] == f"{expected:.3f}"
+
+
+def test_risk_reduction_both_branches():
+    assert risk_reduction(0.30, 0.208) == pytest.approx((0.30 - 0.208) / 0.30)
+    # a risk-free direct leg leaves nothing to reduce
+    assert risk_reduction(0.0, 0.0) == 0.0
+    assert risk_reduction(-1.0, 0.5) == 0.0
+
+
+def test_last_escalation_action_both_branches():
+    assert last_escalation_action(({"action": "stealth"}, {"action": "overt"})) == "overt"
+    assert last_escalation_action(()) == "none"
+
+
+def test_compromise_step_label_both_branches():
+    assert compromise_step_label(4) == "5"
+    assert compromise_step_label(0) == "1"
+    assert compromise_step_label(None) == "never"
+
+
+def test_order_endpoint_both_branches():
+    order = ("observe", "bug", "infiltrate")
+    assert order_endpoint(order, 0) == "observe"
+    assert order_endpoint(order, -1) == "infiltrate"
+    assert order_endpoint((), 0) == "none"
+    assert order_endpoint((), -1) == "none"
+
+
+def test_empty_surveillance_run_reaches_the_none_labels():
+    """The 'no actions' labels are reachable through the real domain API.
+
+    ``analyze_surveillance`` accepts an empty action set, so these are live
+    code paths for a caller, not decoration on an impossible case.
+    """
+    report = analyze_surveillance((), canonical_surveillance_params()["model"])
+    assert order_endpoint(report.optimal_order, 0) == "none"
+    assert order_endpoint(report.optimal_order, -1) == "none"
+    assert compromise_step_label(report.compromise_step) == "never"
+
+
+def test_rogue_peak_alert_token_reports_the_terminal_escalation():
+    """The token must carry the alert the closing action leaves behind."""
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    report = solve_optimal_policy(canonical_rogue_params()["model"])
+    assert tokens["ROGUE_PEAK_ALERT"] == f"{report.peak_alert:.1f}"
+    assert tokens["ROGUE_TERMINAL_ALERT"] == f"{report.terminal_alert:.1f}"
+    assert float(tokens["ROGUE_PEAK_ALERT"]) > 0.0, "a flat-zero peak alert hides the final overt action"
 
 
 def test_every_generated_token_is_used_somewhere():

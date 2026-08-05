@@ -18,8 +18,10 @@ DOI/registrar fields.
 ## Provenance
 
 `mission.py` emits a `Provenance` per outcome: package version
-`0.1.0`, fixed seed `0`, a sha256 `input_hash` over the canonical network,
-and `wall_time_s = 0.0` — every ROGUE result is independently audit-able.
+`0.1.0`, fixed seed `0`, a sha256 `input_hash` over the canonical network
+*and* every parameter of all six domain scenarios, and `wall_time_s = 0.0`
+— every ROGUE result is independently audit-able. The hash's domain
+coverage is enforced by a per-domain mutation test, not by assertion.
 
 ## Quick start
 

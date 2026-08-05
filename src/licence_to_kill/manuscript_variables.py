@@ -15,7 +15,7 @@ from __future__ import annotations
 import datetime as _dt
 import platform
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Sequence, cast
 
 import numpy as np
 import yaml
@@ -40,7 +40,7 @@ from licence_to_kill.operations_logistics import (
     OperationsLogisticsReport,
     analyze_operations_logistics,
     canonical_logistics_params,
-    shortest_path,
+    direct_leg,
 )
 from licence_to_kill.rogue_ops import RogueReport, canonical_rogue_params, solve_optimal_policy
 from licence_to_kill.surveillance import (
@@ -59,7 +59,17 @@ from licence_to_kill.vessel_forensics import (
     forensic_report,
 )
 
-__all__ = ["generate_variables", "load_mission_config", "project_root", "substitute"]
+__all__ = [
+    "compromise_step_label",
+    "direct_leg_risk",
+    "generate_variables",
+    "last_escalation_action",
+    "load_mission_config",
+    "order_endpoint",
+    "project_root",
+    "risk_reduction",
+    "substitute",
+]
 
 
 def project_root() -> Path:
@@ -128,6 +138,55 @@ def _run_mission_analyses() -> tuple[
     return graph, launder, vessel, rogue, finance, logistics, surveillance
 
 
+def direct_leg_risk(network: OperationNetwork, origin: str, destination: str) -> float:
+    """Interdiction risk of the direct ``origin → destination`` leg.
+
+    Raises when no such leg exists. The manuscript reports this number as the
+    baseline the layered route beats; if the direct leg is gone there is no
+    baseline, and substituting a default (the old ``else 1.0``) would
+    fabricate a comparison that no input produced. "Absent" and "risk 1.0"
+    are different findings — Rule 8.
+    """
+    leg = direct_leg(network, origin, destination)
+    if leg is None:
+        raise ValueError(f"no direct leg {origin!r} -> {destination!r}: there is no direct baseline to report")
+    return float(leg.risk)
+
+
+def risk_reduction(direct_risk: float, route_risk: float) -> float:
+    """Fractional interdiction-risk reduction of a route against the direct leg.
+
+    ``direct_risk <= 0`` means the direct leg is already risk-free, so there
+    is nothing to reduce and the fraction is undefined; it is reported as
+    ``0.0`` rather than dividing by zero. Reachable — and reached — by
+    ``tests/test_manuscript_variables.py``.
+    """
+    if direct_risk <= 0.0:
+        return 0.0
+    return (direct_risk - route_risk) / direct_risk
+
+
+def last_escalation_action(escalation: Sequence[Mapping[str, Any]]) -> str:
+    """Name of the last action in an escalation table (``"none"`` if empty)."""
+    if not escalation:
+        return "none"
+    return str(escalation[-1]["action"])
+
+
+def compromise_step_label(step: int | None) -> str:
+    """One-based label for the compromise step, or ``"never"`` when uncompromised."""
+    if step is None:
+        return "never"
+    return str(step + 1)
+
+
+def order_endpoint(order: Sequence[str], index: int) -> str:
+    """Name at ``index`` of an action order (``"none"`` for an empty order)."""
+    if not order:
+        return "none"
+    return str(order[index])
+
+
 def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
     """Compute the full {{TOKEN}} → value map, deterministically.
 
@@ -148,16 +207,10 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
     vessel_profile = vessel_params["profile"]
 
     route = logistics.route
-    # Direct single-leg route for the self-gauging risk reduction metric.
-    network = OperationNetwork(canonical_logistics_params()["legs"])
-    direct = shortest_path(
-        network,
-        logistics.origin,
-        logistics.destination,
-        weight="distance",
-    )
-    direct_risk = float(direct.cumulative_risk) if direct is not None else 1.0
-    reduction = (direct_risk - route.cumulative_risk) / direct_risk if direct_risk > 0.0 else 0.0
+    # The direct single leg — the baseline the manuscript compares against.
+    network = OperationNetwork(logistics_params["legs"])
+    direct_risk = direct_leg_risk(network, logistics.origin, logistics.destination)
+    reduction = risk_reduction(direct_risk, route.cumulative_risk)
 
     stamp = (now or _dt.datetime.now(_dt.timezone.utc)).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -210,8 +263,11 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "ROGUE_ALERT_MAX": str(rogue.alert_max),
         "ROGUE_OPTIMAL_VALUE": f"{rogue.optimal_value:.3f}",
         "ROGUE_FIRST_ACTION": str(rogue.first_action),
-        "ROGUE_LAST_ACTION": str(rogue.escalation[-1]["action"]) if rogue.escalation else "none",
-        "ROGUE_PEAK_ALERT": f"{max((float(s['alert']) for s in rogue.escalation), default=0.0):.1f}",
+        "ROGUE_LAST_ACTION": last_escalation_action(rogue.escalation),
+        # Peak over the alert each action *leaves behind*: the entering-alert
+        # column cannot show what the final action did (see RogueReport).
+        "ROGUE_PEAK_ALERT": f"{rogue.peak_alert:.1f}",
+        "ROGUE_TERMINAL_ALERT": f"{rogue.terminal_alert:.1f}",
         "ROGUE_PEAK_BLOWBACK": f"{rogue.peak_blowback:.3f}",
         "ROGUE_ACTION_CARD": " / ".join(str(a) for a in rogue.actions),
         "ROGUE_POLICY_CELLS": str(rogue.policy_cells),
@@ -266,12 +322,10 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         # surveillance
         "SURV_ACTION_COUNT": str(len(surveillance.optimal_order)),
         "SURV_SUCCESS": f"{surveillance.success_probability:.3f}",
-        "SURV_COMPROMISE_STEP_ONE": (
-            str(surveillance.compromise_step + 1) if surveillance.compromise_step is not None else "never"
-        ),
+        "SURV_COMPROMISE_STEP_ONE": compromise_step_label(surveillance.compromise_step),
         "SURV_PEAK_HAZARD": f"{surveillance.peak_hazard:.3f}",
-        "SURV_FIRST_ACTION": str(surveillance.optimal_order[0]) if surveillance.optimal_order else "none",
-        "SURV_LAST_ACTION": str(surveillance.optimal_order[-1]) if surveillance.optimal_order else "none",
+        "SURV_FIRST_ACTION": order_endpoint(surveillance.optimal_order, 0),
+        "SURV_LAST_ACTION": order_endpoint(surveillance.optimal_order, -1),
         # surveillance declared parameters
         "SURV_THRESHOLD": f"{surv_model.detection_threshold:.2f}",
         "SURV_BETA_0": f"{surv_model.beta_0:.1f}",

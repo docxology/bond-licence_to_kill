@@ -7,11 +7,21 @@ proven by executing twice and comparing results byte-for-byte.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from licence_to_kill.mission import GADGET_REGISTRY, MissionProvider, run_rogue_mission
+from licence_to_kill.laundering_graph import build_sanchez_network
+from licence_to_kill.mission import (
+    GADGET_REGISTRY,
+    MissionProvider,
+    _input_hash,
+    canonical_domain_inputs,
+    run_rogue_mission,
+)
+from licence_to_kill.rogue_ops import canonical_rogue_params
+from licence_to_kill.surveillance import canonical_surveillance_params
 
 from bond_api.protocol import (
     MissionProvider as ProtocolType,
@@ -142,6 +152,53 @@ def test_gadget_registry_register():
     manifest = GADGET_REGISTRY.lookup("licence_to_kill", "network_manifest")
     assert manifest["seed"] == 0
     assert GADGET_REGISTRY.contains("licence_to_kill", "surveillance_model")
+
+
+#: One mutation per domain: domain key → (parameter key, mutated value).
+#: Each mutation changes a real input the mission consumes, so a provenance
+#: hash that claims to cover "all six domains" must respond to every one.
+_DOMAIN_MUTATIONS = {
+    "laundering": ("max_depth", 99),
+    "vessel": ("observed", {"cargo_mass_t": 1.0, "declared_displacement_t": 1.0}),
+    "rogue": ("model", replace(canonical_rogue_params()["model"], horizon=3)),
+    "finance": ("purity", 0.99),
+    "logistics": ("capacity_kg", 999.0),
+    "surveillance": ("model", replace(canonical_surveillance_params()["model"], beta_0=-1.0)),
+}
+
+
+def test_canonical_domain_inputs_lists_every_domain():
+    assert set(canonical_domain_inputs()) == set(_DOMAIN_MUTATIONS)
+
+
+@pytest.mark.parametrize("domain", sorted(_DOMAIN_MUTATIONS))
+def test_input_hash_covers_every_domain(domain):
+    """Mutating any one domain's canonical inputs must change the provenance hash.
+
+    This is the gate the ``input_hash`` documentation depends on: README,
+    AGENTS, and ``docs/architecture.md`` all claim the hash covers the
+    canonical inputs of all six domains, so an outcome can be audited without
+    re-running it. Before this test, the hashed payload silently omitted the
+    entire vessel and rogue domains — every vessel/rogue parameter could
+    change while the "audit" hash stayed identical. Dropping a domain from
+    ``_input_hash``'s payload turns the matching case red.
+    """
+    graph = build_sanchez_network(seed=0)
+    baseline = _input_hash(graph)
+    # Control: an untouched copy of the same inputs reproduces the hash.
+    assert _input_hash(graph, {k: dict(v) for k, v in canonical_domain_inputs().items()}) == baseline
+
+    key, value = _DOMAIN_MUTATIONS[domain]
+    mutated = {k: dict(v) for k, v in canonical_domain_inputs().items()}
+    assert key in mutated[domain], f"{domain} has no parameter {key!r}"
+    mutated[domain][key] = value
+    assert _input_hash(graph, mutated) != baseline, f"{domain} inputs are absent from the provenance hash"
+
+
+def test_input_hash_covers_the_built_graph():
+    """The graph itself is hashed too, not only the declared parameters."""
+    baseline = _input_hash(build_sanchez_network(seed=0))
+    assert _input_hash(build_sanchez_network(seed=7)) != baseline
 
 
 def test_pure_domain_modules_are_bond_api_free():

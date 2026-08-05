@@ -30,9 +30,13 @@ The ROGUE mission is deterministic by construction:
 
 Every `MissionOutcome` carries a `Provenance` with the package version
 ({{BOND_VERSION}}), the `seed` ({{SEED}}), a `sha256` `input_hash` over the
-canonical network (node set and edge amounts), and `wall_time_s = 0.0`. The
-hash makes any ROGUE outcome independently auditable without re-running the
-film: re-compute the hash over the same inputs and it must match.
+canonical network (node set and edge amounts) *and* every parameter of all
+six canonical domain scenarios, and `wall_time_s = 0.0`. The hash makes any
+ROGUE outcome independently auditable without re-running the film:
+re-compute the hash over the same inputs and it must match. Its coverage is
+tested by mutating each domain's inputs in turn and requiring the hash to
+respond — a hash that silently omitted a domain would make "audit" mean
+less than it says.
 
 ## Test coverage
 

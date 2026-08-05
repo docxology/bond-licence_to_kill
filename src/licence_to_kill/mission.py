@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from dataclasses import fields, is_dataclass
+from typing import Any, Mapping
 
 from bond_api.protocol import (
     Asset,
@@ -66,7 +67,7 @@ from licence_to_kill.vessel_forensics import (
     forensic_report,
 )
 
-__all__ = ["GADGET_REGISTRY", "MissionProvider", "run_rogue_mission"]
+__all__ = ["GADGET_REGISTRY", "MissionProvider", "canonical_domain_inputs", "run_rogue_mission"]
 
 #: Canonical scenarios for all six domains — every constant used below comes
 #: from a ``canonical_*_params()`` single source shared with
@@ -99,36 +100,56 @@ _ACTIONS: tuple[CovertAction, ...] = _SURVEILLANCE["actions"]
 _SURV_MODEL: SurveillanceModel = _SURVEILLANCE["model"]
 
 
-def _input_hash(graph: TransactionGraph) -> str:
-    """Stable fingerprint of the mission's canonical inputs (all six domains)."""
+def canonical_domain_inputs() -> dict[str, dict[str, Any]]:
+    """The six canonical parameter dicts, keyed by domain.
+
+    One place, so :func:`_input_hash` cannot silently omit a domain: it hashes
+    whatever this returns. A parameter added to any ``canonical_*_params()``
+    enters the provenance hash automatically.
+    """
+    return {
+        "laundering": _LAUNDERING,
+        "vessel": _VESSEL,
+        "rogue": _ROGUE,
+        "finance": _FINANCE,
+        "logistics": _LOGISTICS,
+        "surveillance": _SURVEILLANCE,
+    }
+
+
+def _jsonable(value: Any) -> Any:
+    """Recursively convert canonical parameters to JSON-serialisable values.
+
+    Handles the frozen dataclasses the domains declare (``VesselProfile``,
+    ``RogueModel``, ``MissionLeg``, ``GadgetItem``, ``CovertAction``,
+    ``SurveillanceModel``), mappings, and sequences. Anything else is passed
+    through and will raise loudly in :func:`json.dumps` rather than be dropped
+    — an un-hashable input must fail, not vanish from the fingerprint.
+    """
+    if is_dataclass(value) and not isinstance(value, type):
+        return {f.name: _jsonable(getattr(value, f.name)) for f in fields(value)}
+    if isinstance(value, Mapping):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    return value
+
+
+def _input_hash(graph: TransactionGraph, domains: Mapping[str, Any] | None = None) -> str:
+    """Stable sha256 fingerprint of the mission's canonical inputs.
+
+    Covers the built transaction graph *and* every parameter of all six
+    canonical domain scenarios. ``domains`` is injectable so
+    ``tests/test_mission.py::test_input_hash_covers_every_domain`` can mutate
+    one domain at a time and prove the hash actually responds — the gate that
+    was missing when this hash silently omitted the vessel and rogue domains.
+    """
     payload: dict[str, object] = {
-        "seed": _SEED,
-        "sources": list(_SOURCES),
-        "sinks": list(_SINKS),
-        "nodes": list(graph.nodes()),
-        "edges": [{"s": e.source, "t": e.target, "a": e.amount, "x": e.sector} for e in graph.edges()],
-        "finance": {
-            "value_usd": _FINANCE["value_usd"],
-            "denomination": _FINANCE["denomination"],
-            "stages": list(_FINANCE["stages"]),
-            "purity": _FINANCE["purity"],
+        "graph": {
+            "nodes": list(graph.nodes()),
+            "edges": [{"s": e.source, "t": e.target, "a": e.amount, "x": e.sector} for e in graph.edges()],
         },
-        "logistics": {
-            "origin": _LOGISTICS["origin"],
-            "destination": _LOGISTICS["destination"],
-            "legs": [leg.as_dict() for leg in _LOGISTICS["legs"]],
-            "gadgets": [{"name": g.name, "weight_kg": g.weight_kg, "value": g.value} for g in _LOGISTICS["gadgets"]],
-            "capacity_kg": _LOGISTICS["capacity_kg"],
-        },
-        "surveillance": {
-            "actions": [
-                {"name": a.name, "signature": a.signature, "watch_increment": a.watch_increment, "value": a.value}
-                for a in _ACTIONS
-            ],
-            "beta_0": _SURV_MODEL.beta_0,
-            "beta_watch": _SURV_MODEL.beta_watch,
-            "beta_signature": _SURV_MODEL.beta_signature,
-        },
+        "domains": _jsonable(canonical_domain_inputs() if domains is None else domains),
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

@@ -124,22 +124,34 @@ def blowback_probability(alert: float, exposure: float, model: RogueModel) -> fl
 
 
 def escalation_path(model: RogueModel, actions_indices: Sequence[int]) -> tuple[dict[str, float | str | int], ...]:
-    """Deterministically project alert/exposure/blowback over an action sequence."""
+    """Deterministically project alert/exposure/blowback over an action sequence.
+
+    Each row carries the state the step is *entered* with (``alert``,
+    ``exposure``, ``blowback``) **and** the alert the step's own action leaves
+    behind (``alert_after``). Both are needed: the hazard a step faces is a
+    function of the entering state, but a table of entering states alone can
+    never show what the last action did — under the canonical optimal policy
+    (nine stealth steps then one overt close) the entering-alert column is
+    identically zero, which reads as "the optimal policy never escalates"
+    when in fact its final action raises alert to 3.
+    """
     alert = 0.0
     exposure = 0.0
     path: list[dict[str, float | str | int]] = []
     for step_no, action_idx in enumerate(actions_indices):
         hazard = blowback_probability(alert, exposure, model)
+        alert_after = next_alert(alert, model, action_idx)
         path.append(
             {
                 "step": step_no,
                 "action": model.actions[action_idx],
                 "alert": alert,
+                "alert_after": alert_after,
                 "exposure": exposure,
                 "blowback": hazard,
             }
         )
-        alert = next_alert(alert, model, action_idx)
+        alert = alert_after
         exposure += model.exposure_step
     return tuple(path)
 
@@ -173,6 +185,14 @@ class RogueReport:
     escalation: tuple[dict[str, float | str | int], ...]
     peak_blowback: float
     policy_cells: int
+    #: Highest alert level the trajectory *reaches*, including the level left
+    #: behind by the final action. Taken over ``alert_after``, not over the
+    #: entering-alert column, so a policy whose only escalation is its last
+    #: step is reported honestly instead of as a flat zero.
+    peak_alert: float
+    #: Alert level standing when the horizon ends (nothing is left to be
+    #: exposed to it — this is the finite-horizon end effect, priced at zero).
+    terminal_alert: float
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -182,6 +202,8 @@ class RogueReport:
             "optimal_value": self.optimal_value,
             "first_action": self.first_action,
             "peak_blowback": self.peak_blowback,
+            "peak_alert": self.peak_alert,
+            "terminal_alert": self.terminal_alert,
             "policy_cells": self.policy_cells,
             "escalation": [dict(e) for e in self.escalation],
         }
@@ -253,7 +275,12 @@ def solve_optimal_policy(model: RogueModel) -> RogueReport:
         alert = int(next_alert(float(alert), model, action_idx))
         e = min(exposure_cap, e + 1)
     escalation = escalation_path(model, action_seq)
-    peak_blowback = max((float(step["blowback"]) for step in escalation), default=0.0)
+    # ``horizon >= 1`` is enforced by ``RogueModel.__post_init__``, so the
+    # escalation table always has at least one row here. No ``default=`` and
+    # no emptiness guard: neither could ever be reached (Rule 8).
+    peak_blowback = max(float(step["blowback"]) for step in escalation)
+    peak_alert = max(float(step["alert_after"]) for step in escalation)
+    terminal_alert = float(escalation[-1]["alert_after"])
 
     return RogueReport(
         horizon=horizon,
@@ -264,6 +291,8 @@ def solve_optimal_policy(model: RogueModel) -> RogueReport:
         escalation=escalation,
         peak_blowback=peak_blowback,
         policy_cells=len(policy) * (alert_max + 1) * (exposure_cap + 1),
+        peak_alert=peak_alert,
+        terminal_alert=terminal_alert,
     )
 
 

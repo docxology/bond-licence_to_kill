@@ -25,6 +25,7 @@ from licence_to_kill.laundering_graph import (
 from licence_to_kill.operations_logistics import (
     OperationNetwork,
     canonical_logistics_params,
+    direct_leg,
     shortest_path,
 )
 from licence_to_kill.rogue_ops import canonical_rogue_params, solve_optimal_policy
@@ -128,13 +129,26 @@ def plot_rogue_escalation(outdir: Path) -> Path:
             {
                 "step": int(entry["step"]),
                 "alert": float(entry["alert"]),
+                "alert_after": float(entry["alert_after"]),
                 "exposure": float(entry["exposure"]),
                 "blowback": float(entry["blowback"]),
             }
         )
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.4))
     x = [s["step"] for s in steps]
-    axes[0].plot(x, [s["alert"] for s in steps], marker="o", color="#c0392b", label="alert level")
+    # Both alert series: the level each step is entered with (what its hazard
+    # is priced on) and the level its own action leaves behind. Plotting only
+    # the former draws a flat zero line for the canonical optimal policy and
+    # hides the terminal overt escalation entirely.
+    axes[0].plot(x, [s["alert"] for s in steps], marker="o", color="#c0392b", label="alert entering step")
+    axes[0].plot(
+        x,
+        [s["alert_after"] for s in steps],
+        marker="x",
+        ls="--",
+        color="#e74c3c",
+        label="alert after action",
+    )
     axes[0].plot(x, [s["exposure"] for s in steps], marker="s", color="#8e44ad", label="cumulative exposure")
     axes[0].set_title("ROGUE escalation under the optimal policy")
     axes[0].set_xlabel("mission step")
@@ -200,7 +214,11 @@ def plot_operations_logistics(outdir: Path, params: dict[str, Any] | None = None
     params = canonical_logistics_params() if params is None else params
     network = OperationNetwork(params["legs"])
     optimal = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="risk")
-    direct = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="distance")
+    # The baseline is the *direct leg*, not the distance-minimal path. They
+    # coincide on the canonical network, which is precisely why computing the
+    # latter and calling it the former went unnoticed; see
+    # ``operations_logistics.direct_leg``.
+    direct = direct_leg(network, str(params["origin"]), str(params["destination"]))
     # Explicit raise rather than `assert`: assertions are stripped under -O,
     # which would turn an unreachable destination into an AttributeError deep
     # inside the plotting code instead of a named failure here.
@@ -210,7 +228,7 @@ def plot_operations_logistics(outdir: Path, params: dict[str, Any] | None = None
     # Deterministic hub layout (left → right by operational stage).
     positions = {"IC": (0.0, 0.0), "BOG": (0.8, -1.2), "HK": (2.2, 0.6), "FL": (3.4, 0.0)}
     optimal_edges = {(leg.origin, leg.destination) for leg in optimal.legs}
-    direct_edges = {(leg.origin, leg.destination) for leg in direct.legs}
+    direct_edges = {(direct.origin, direct.destination)}
 
     fig, ax = plt.subplots(figsize=(9, 5.4))
     for leg in network.legs():
@@ -239,7 +257,7 @@ def plot_operations_logistics(outdir: Path, params: dict[str, Any] | None = None
         ax.text(x, y, node, ha="center", va="center", color="white", fontsize=10, fontweight="bold", zorder=4)
     ax.set_title(
         f"ROGUE operations network — risk-optimal route {' → '.join(optimal.path)} "
-        f"(cum. risk {optimal.cumulative_risk:.3f} vs direct {direct.cumulative_risk:.3f})"
+        f"(cum. risk {optimal.cumulative_risk:.3f} vs direct leg {direct.risk:.3f})"
     )
     ax.set_xlim(-0.6, 4.0)
     ax.set_ylim(-2.0, 1.6)

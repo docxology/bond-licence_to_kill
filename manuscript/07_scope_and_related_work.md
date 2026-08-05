@@ -62,9 +62,14 @@ modelled objects*, and the objects are idealised.
 - **The rogue model's alert dimension is an integer lattice**, so the
   visibility ladder is truncated onto it. At the canonical parameters the
   stealth intensity's visibility ({{ROGUE_STEALTH_VISIBILITY}}) truncates to
-  *no* alert increase, which
-  is why the optimal policy's alert stays at {{ROGUE_PEAK_ALERT}} and the
-  blowback hazard is driven by exposure alone. This is the most consequential
+  *no* alert increase, which is why the optimal policy enters every one of
+  its steps at alert 0 and the blowback hazard it faces is driven by
+  exposure alone. Its single escalation is the closing overt action, which
+  leaves alert at {{ROGUE_TERMINAL_ALERT}} with no remaining horizon to be
+  exposed to it — reported as `ROGUE_PEAK_ALERT`
+  ({{ROGUE_PEAK_ALERT}}) rather than folded into the entering-alert curve,
+  because a peak taken over entering alert alone is identically zero for
+  this policy and would misdescribe it. This is the most consequential
   simplification in the package and it is stated here rather than buried:
   a finer alert lattice, or an explicitly integral visibility ladder, would
   change the optimal policy. The quantisation is at least *consistent* — the

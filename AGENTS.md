@@ -57,6 +57,9 @@ prose only as `{{TOKEN}}`s, enforced by four gates in
 
 Determinism is contractual: seed 0, `wall_time_s = 0.0`, and a sha256
 `input_hash` over all six domains' canonical inputs in every `Provenance`.
+The hash is built from `mission.canonical_domain_inputs()`, so a parameter
+added to any `canonical_*_params()` enters it automatically; the per-domain
+mutation gate in `tests/test_mission.py` fails if a domain ever drops out.
 Full contract: [`docs/architecture.md`](docs/architecture.md) §3.
 
 ## Build and test

@@ -17,6 +17,8 @@ Zero mocks: real YAML file, real canonical functions, real analyses.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from licence_to_kill.laundering_graph import (
@@ -24,7 +26,7 @@ from licence_to_kill.laundering_graph import (
     build_sanchez_network,
     canonical_laundering_params,
 )
-from licence_to_kill.manuscript_variables import load_mission_config
+from licence_to_kill.manuscript_variables import load_mission_config, project_root
 from licence_to_kill.narcotics_finance import canonical_finance_params
 from licence_to_kill.operations_logistics import canonical_logistics_params
 from licence_to_kill.rogue_ops import canonical_rogue_params
@@ -176,3 +178,48 @@ def test_consumers_share_one_canonical_scenario():
     assert fin_a.as_dict() == fin_b.as_dict()
     assert log_a.as_dict() == log_b.as_dict()
     assert surv_a.as_dict() == surv_b.as_dict()
+
+
+#: Every domain core module → a phrase the deposit metadata must contain to
+#: describe it. Keys are checked against what is actually on disk, so adding a
+#: seventh domain core fails this test until the deposit description is
+#: updated to mention it.
+_DOMAIN_DESCRIPTION_PHRASES = {
+    "laundering_graph.py": "money-laundering-graph",
+    "vessel_forensics.py": "vessel-forensic",
+    "rogue_ops.py": "rogue-operation",
+    "narcotics_finance.py": "narcotics-finance",
+    "operations_logistics.py": "operations logistics",
+    "surveillance.py": "surveillance",
+}
+#: Modules under ``src/licence_to_kill/`` that are adapters or tooling, not
+#: domain cores.
+_NON_DOMAIN_MODULES = {"__init__.py", "mission.py", "manuscript_variables.py"}
+
+
+def _domain_core_modules() -> set[str]:
+    src = project_root() / "src" / "licence_to_kill"
+    return {p.name for p in src.glob("*.py")} - _NON_DOMAIN_MODULES
+
+
+def test_domain_phrase_map_matches_the_modules_on_disk():
+    """The phrase map is bound to the tree, not to a remembered domain count."""
+    assert _domain_core_modules() == set(_DOMAIN_DESCRIPTION_PHRASES)
+
+
+@pytest.mark.parametrize("deposit", [".zenodo.json", "codemeta.json"])
+def test_deposit_metadata_describes_every_domain(deposit):
+    """Deposit descriptions must name every domain core the package ships.
+
+    The Zenodo description described three domains for the whole life of the
+    six-domain package — an archived record that understates what was
+    deposited. This gate makes that failure mode loud: drop a domain from the
+    description, or add a domain core without updating it, and this goes red.
+    """
+    path = project_root() / deposit
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    description = str(payload["description"]).lower()
+    missing = sorted(
+        phrase for module, phrase in _DOMAIN_DESCRIPTION_PHRASES.items() if phrase.lower() not in description
+    )
+    assert missing == [], f"{deposit} description omits: {missing}"

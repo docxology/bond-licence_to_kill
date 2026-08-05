@@ -82,9 +82,13 @@ callables (`laundering_analyzer`, `laundering_network`, `vessel_forensics`,
 additive.
 
 Every `MissionOutcome` carries `Provenance` with the package version,
-`seed = 0`, `wall_time_s = 0.0`, and a sha256 `input_hash` over the
-canonical inputs of all six domains — so any outcome can be audited without
-re-running it.
+`seed = 0`, `wall_time_s = 0.0`, and a sha256 `input_hash` over the built
+transaction graph plus **every parameter of all six** `canonical_*_params()`
+scenarios — so any outcome can be audited without re-running it. That
+coverage is a tested property, not a comment: `test_input_hash_covers_every_domain`
+mutates one domain at a time and requires the hash to move, which is how the
+earlier version of this hash — silently blind to the entire vessel and rogue
+domains — would have been caught.
 
 ## Layout
 

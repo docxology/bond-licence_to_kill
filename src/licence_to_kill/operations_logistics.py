@@ -35,6 +35,7 @@ __all__ = [
     "TripPlan",
     "analyze_operations_logistics",
     "canonical_logistics_params",
+    "direct_leg",
     "gadget_knapsack",
     "shortest_path",
     "trip_plan",
@@ -157,6 +158,25 @@ def _edge_weight(leg: MissionLeg, weight: str) -> float:
     if weight == "cost":
         return float(leg.cost)
     return float(leg.distance_nm)
+
+
+def direct_leg(network: OperationNetwork, origin: str, destination: str) -> MissionLeg | None:
+    """The single leg ``origin → destination``, or ``None`` if there is none.
+
+    This is deliberately *not* ``shortest_path(..., weight="distance")``. On
+    the canonical network the distance-minimal path happens to be the single
+    IC→FL leg, so the two agreed and the manuscript's "direct single leg"
+    baseline was really a distance-minimal path that coincided with it. Add
+    one shorter two-hop pair and they diverge silently. The comparison the
+    prose makes is against the *direct* leg, so it is computed directly.
+
+    Deterministic: the first matching leg in insertion order wins, and
+    :class:`OperationNetwork` preserves insertion order.
+    """
+    for leg in network.legs_from(origin):
+        if leg.destination == destination:
+            return leg
+    return None
 
 
 def shortest_path(

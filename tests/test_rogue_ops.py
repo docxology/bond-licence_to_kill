@@ -183,6 +183,46 @@ def test_dp_value_equals_replayed_optimal_sequence():
     assert replayed == pytest.approx(report.optimal_value, abs=1e-9)
 
 
+def test_peak_alert_records_the_final_action_consequence():
+    """``peak_alert`` must see the escalation the optimal policy actually buys.
+
+    The canonical optimum is nine stealth steps then one overt close. Every
+    row's *entering* alert is therefore 0.0 — a peak taken over that column
+    reports 0.0 and reads as "the optimal policy never escalates", which is
+    false: the closing overt action raises alert to 3. This test pins the
+    difference, so reverting ``peak_alert`` to a max over ``alert``, or
+    dropping ``alert_after`` from the escalation rows, turns it red.
+    """
+    m = build_rogue_model()
+    r = solve_optimal_policy(m)
+    entering_peak = max(float(step["alert"]) for step in r.escalation)
+    assert entering_peak == 0.0, "canonical optimum is stealth-until-the-close; entering alert stays 0"
+    assert r.peak_alert == pytest.approx(float(alert_increment(m, 2)))
+    assert r.peak_alert > entering_peak
+    assert r.terminal_alert == pytest.approx(r.peak_alert)
+    assert str(r.escalation[-1]["action"]) == "overt"
+
+
+def test_alert_after_is_the_next_row_entering_alert():
+    """``alert_after`` is the same transition the DP uses, one row early."""
+    m = build_rogue_model()
+    path = escalation_path(m, [1, 2, 0])
+    for previous, following in zip(path, path[1:]):
+        assert previous["alert_after"] == following["alert"]
+    assert path[-1]["alert_after"] == pytest.approx(
+        float(alert_increment(m, 1) + alert_increment(m, 2) + alert_increment(m, 0))
+    )
+
+
+def test_peak_alert_is_not_constant_across_policies():
+    """A non-escalating policy and an escalating one must not report the same peak."""
+    m = build_rogue_model(horizon=3)
+    quiet = escalation_path(m, [0, 0, 0])
+    loud = escalation_path(m, [2, 2, 2])
+    assert max(float(s["alert_after"]) for s in quiet) == 0.0
+    assert max(float(s["alert_after"]) for s in loud) == pytest.approx(9.0)
+
+
 def test_dp_dominates_every_constant_policy():
     """The optimum must be >= every fixed-intensity policy, not just all-overt."""
     m = build_rogue_model()

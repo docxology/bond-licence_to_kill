@@ -18,6 +18,7 @@ from licence_to_kill.operations_logistics import (
     TripPlan,
     analyze_operations_logistics,
     canonical_logistics_params,
+    direct_leg,
     gadget_knapsack,
     shortest_path,
     trip_plan,
@@ -130,6 +131,34 @@ def test_shortest_path_unreachable_known_returns_none():
     assert shortest_path(net, "A", "D") is None
 
 
+def test_direct_leg_returns_the_single_leg_or_none():
+    params = _params()
+    net = OperationNetwork(params["legs"])
+    leg = direct_leg(net, "IC", "FL")
+    assert leg is not None
+    assert (leg.origin, leg.destination) == ("IC", "FL")
+    assert leg.risk == pytest.approx(0.30)
+    # BOG has no direct leg to FL even though FL is reachable via HK
+    assert direct_leg(net, "BOG", "FL") is None
+
+
+def test_direct_leg_differs_from_distance_minimal_path_in_general():
+    """They coincide on the canonical network; that is a coincidence, not a rule."""
+    net = OperationNetwork(
+        (
+            MissionLeg("A", "B", 100.0, 1.0, 0.5),
+            MissionLeg("A", "C", 10.0, 1.0, 0.1),
+            MissionLeg("C", "B", 10.0, 1.0, 0.1),
+        )
+    )
+    leg = direct_leg(net, "A", "B")
+    assert leg is not None and leg.risk == pytest.approx(0.5)
+    by_distance = shortest_path(net, "A", "B", weight="distance")
+    assert by_distance is not None
+    assert by_distance.path == ("A", "C", "B")
+    assert by_distance.cumulative_risk != pytest.approx(leg.risk)
+
+
 # --------------------------------------------------------------- knapsack
 def test_knapsack_canonical():
     params = _params()
@@ -155,6 +184,67 @@ def test_knapsack_empty_and_errors():
     # an item heavier than capacity is simply skipped
     result = gadget_knapsack((GadgetItem("heavy", 100.0, 50.0), GadgetItem("light", 1.0, 2.0)), 10.0)
     assert result.names == ("light",)
+
+
+def _greedy_value_density(items: tuple[GadgetItem, ...], capacity_kg: float) -> KnapsackResult:
+    """The heuristic the exact DP is contrasted against, implemented for real.
+
+    Sort by value per kilogram (name as the deterministic tie-break), take
+    greedily while the item fits. This is not a helper the package ships — it
+    exists so the manuscript's comparison against greedy is *measured* rather
+    than asserted.
+    """
+    order = sorted(items, key=lambda item: (-(item.value / item.weight_kg), item.name))
+    names: list[str] = []
+    weight = 0.0
+    value = 0.0
+    for item in order:
+        if weight + item.weight_kg <= capacity_kg:
+            names.append(item.name)
+            weight += item.weight_kg
+            value += item.value
+    return KnapsackResult(tuple(names), value, weight)
+
+
+def test_greedy_matches_exact_on_the_canonical_instance():
+    """On the canonical gadget set, greedy and the exact DP agree exactly.
+
+    The manuscript used to present the loadout as "the exact optimum, not a
+    greedy value-density pick", implying the two differ here. They do not:
+    same five items, same value, same weight. This test pins that fact so the
+    prose cannot quietly drift back to claiming a contrast that the numbers
+    do not support.
+    """
+    params = _params()
+    exact = gadget_knapsack(params["gadgets"], params["capacity_kg"])
+    greedy = _greedy_value_density(params["gadgets"], params["capacity_kg"])
+    assert set(greedy.names) == set(exact.names)
+    assert greedy.value == pytest.approx(exact.value)
+    assert greedy.weight_kg == pytest.approx(exact.weight_kg)
+
+
+def test_greedy_value_density_is_suboptimal_on_a_counterexample():
+    """The DP's guarantee is instance-independent; greedy's is not.
+
+    Capacity 10 kg. Greedy ranks by value/kg: the decoy (1 kg, value 6,
+    density 6.0) first, then one 5 kg / value 10 item — 6 kg used, value 16,
+    and nothing else fits. The exact optimum drops the decoy and takes both
+    5 kg items: 10 kg, value 20. This is the claim the manuscript actually
+    makes for the exact solver, and it is checked rather than asserted.
+    """
+    items = (
+        GadgetItem("dense_decoy", 1.0, 6.0),
+        GadgetItem("pair_a", 5.0, 10.0),
+        GadgetItem("pair_b", 5.0, 10.0),
+        GadgetItem("filler", 9.0, 9.0),
+    )
+    exact = gadget_knapsack(items, 10.0)
+    greedy = _greedy_value_density(items, 10.0)
+    assert exact.value == pytest.approx(20.0)
+    assert set(exact.names) == {"pair_a", "pair_b"}
+    assert greedy.value == pytest.approx(16.0)
+    assert set(greedy.names) == {"dense_decoy", "pair_a"}
+    assert greedy.value < exact.value
 
 
 def test_knapsack_deterministic():

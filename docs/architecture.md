@@ -99,6 +99,16 @@ it now is
 `tests/test_rogue_ops.py::test_dp_value_equals_replayed_optimal_sequence`:
 replaying the DP's own action sequence must reproduce its value exactly.
 
+Each escalation row carries both the alert the step is *entered* with
+(`alert`, what its hazard is priced on) and the alert its own action leaves
+behind (`alert_after`). `RogueReport.peak_alert` / `terminal_alert` are
+taken over the latter. The reason is not tidiness: the canonical optimum is
+nine stealth steps then one overt close, so the entering-alert column is
+identically zero and a "peak alert" read off it reports 0.0 — a number
+structurally incapable of showing the escalation the policy actually
+chooses. `test_peak_alert_records_the_final_action_consequence` pins the
+gap between the two.
+
 ### `narcotics_finance.py` — cash economics and manifest physics
 
 `price_chain` applies sequential stage multipliers; `purity_adjusted_price`
@@ -113,6 +123,12 @@ then to mass, volume, and bulk density. `manifest_feasibility` and
 Dijkstra over one of three additive weights; for `risk` the per-leg weight
 is −ln(1−r), which makes the survival *product* additive so the returned
 route genuinely minimises the reported 1−∏(1−rᵢ) metric rather than a proxy.
+`direct_leg` returns the single origin→destination edge — the baseline the
+manuscript compares the layered route against. It is a separate function
+precisely because `shortest_path(..., weight="distance")` returns that same
+leg on the canonical network, so calling the distance-minimal path "the
+direct leg" produced correct numbers for the wrong reason and would have
+diverged silently the moment a shorter two-hop pair was added.
 
 `gadget_knapsack` is exact 0/1 knapsack over gram-scaled integer weights.
 Its selection flag is recorded during each item's own DP pass; the tempting
@@ -188,11 +204,23 @@ fleet:
 Determinism is part of the contract, not a nicety. `Provenance` carries the
 package version, `seed = 0`, `wall_time_s = 0.0` (a real elapsed time would
 make outcomes non-comparable across runs), and a sha256 `input_hash`
-computed over the canonical inputs of all six domains — node set, edge
-amounts, finance parameters, logistics legs and gadgets, and surveillance
+computed over the built transaction graph (node set and edge amounts) plus
+every parameter of all six `canonical_*_params()` scenarios — laundering
+search bounds, the vessel profile and its observations, the full rogue
+model, finance parameters, logistics legs and gadgets, and surveillance
 actions and coefficients. Any ROGUE outcome can therefore be audited without
 re-running the mission: recompute the hash over the same inputs and it must
 match.
+
+The payload is serialised from `mission.canonical_domain_inputs()` by a
+recursive dataclass walk, so this is not a hand-maintained list that can
+fall behind the domains: a parameter added to any `canonical_*_params()`
+enters the hash without an edit here. The claim is enforced rather than
+asserted — `tests/test_mission.py::test_input_hash_covers_every_domain`
+mutates one domain's inputs at a time and requires the hash to change. It
+exists because the first version of this hash covered four domains while
+documenting six: every vessel and rogue parameter could change with the
+"audit" hash unmoved.
 
 ## 4. One declaration per scenario
 
