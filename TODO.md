@@ -3,6 +3,36 @@
 Forward-only backlog for the ROGUE film package (*Licence to Kill*, 1989),
 mission codename **ROGUE**.
 
+## Deep improvement (phase-4, this pass)
+
+- **Three new pure domain modules** (`src/licence_to_kill/`):
+  - `narcotics_finance.py` — supply-chain price/purity ladder (export →
+    wholesale → street), US-currency note cash physics (mass/volume via
+    `canonical_finance_params`, billed at the $5M opening intercept), hold
+    manifest feasibility, trip count.
+  - `operations_logistics.py` — risk-adjusted Dijkstra routing (edge weight
+    −ln(1−r) over the survival product; cost/distance weights also
+    supported), exact 0/1-knapsack gadget loadout (gram-scaled DP with a
+    correct per-item `selected` reconstruction), fuel-endurance trip
+    projection with mid-leg refuelling.
+  - `surveillance.py` — logistic detection hazard over a covert-action
+    sequence, product-survival, exact permutation ordering (n ≤ 8) and the
+    Smith-rule ratio heuristic, and compromise-step timing.
+- **Protocol-stable deepening** — `mission.py` keeps the frozen
+  `MissionProvider` (brief/recon/plan/execute/debrief) and
+  `GADGET_REGISTRY`; brief grows to six objectives/assets, results gain
+  `narcotics_finance` / `operations_logistics` / `surveillance` keys, and
+  gadgets gain `narcotics_finance` / `operations_router` /
+  `surveillance_model` (additive only).
+- **Presentation** — manuscript tokens `FIN_*` / `LOG_*` / `SURV_*` added
+  from the new `canonical_*_params()` single sources; a fourth figure
+  (`operations_logistics.png`) added; `references.bib` extended with real
+  sources (Dijkstra 1959, Kellerer/Pferschy/Pisinger 2004, Smith 1956, BEP
+  currency facts, DEA price analyses).
+- **Tests** — `test_narcotics_finance.py`, `test_operations_logistics.py`,
+  `test_surveillance.py` added and the mission/manuscript/figure tests
+  extended. 124 passed, ~99.6 % line + branch coverage on `src/`.
+
 ## Built (phase-1 conversion, this pass)
 
 - **Pure domain core** (`src/licence_to_kill/`):
@@ -28,7 +58,9 @@ mission codename **ROGUE**.
 
 ## Verification evidence (2026-08)
 
-- `uv run pytest tests/ --cov=src --cov-fail-under=90` → 73 passed, ~99 %.
+- `uv run pytest tests/ --cov=src --cov-fail-under=90` → **124 passed**,
+  **~99.6 %** line + branch coverage on `src/` (all six domain modules at or
+  above 99 %; figures/laundering/narcotics/operations/surveillance at 100 %).
 - `uv run ruff check src/ scripts/ tests/` + `ruff format` + `uv run mypy
   src/ scripts/` → clean.
 - Zero leftover lineage strings (lineage grep excludes `uv.lock`/`.git`).

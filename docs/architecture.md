@@ -4,7 +4,7 @@
 
 | Layer | Location | Allowed imports | Responsibility |
 |---|---|---|---|
-| Domain core | `src/licence_to_kill/{laundering_graph,vessel_forensics,rogue_ops}.py` | stdlib + numpy | Pure algorithms, deterministic |
+| Domain core | `src/licence_to_kill/{laundering_graph,vessel_forensics,rogue_ops,narcotics_finance,operations_logistics,surveillance}.py` | stdlib + numpy | Pure algorithms, deterministic |
 | Protocol adapter | `src/licence_to_kill/mission.py` | `bond_api` + domain core | Five-stage `MissionProvider`; gadget registry |
 | Presentation | `src/licence_to_kill/manuscript_variables.py`, `src/licence_to_kill/figures/` | domain core + config + matplotlib | Token hydration, deterministic figures |
 | Thin CLIs | `scripts/` | `_bootstrap`, domain, `bond_api.serialization` | Drive mission phases |
@@ -24,6 +24,13 @@ the monorepo `infrastructure` tree.
   checks over a `VesselProfile`.
 - **`rogue_ops.py`** — logistic blowback hazard, escalation projection, and
   the exact backward-induction `solve_optimal_policy` dynamic program.
+- **`narcotics_finance.py`** — supply-chain price/purity ladder, US-note cash
+  physics (mass/volume), hold manifest feasibility, trip count.
+- **`operations_logistics.py`** — risk-adjusted Dijkstra routing (survival
+  weight −ln(1−r)), exact 0/1-knapsack gadget loadout, fuel-endurance trip
+  projection.
+- **`surveillance.py`** — logistic detection hazard, product-survival,
+  exact (n ≤ 8) and ratio-rule survival-optimal ordering, compromise timing.
 
 ## How to add a concept
 

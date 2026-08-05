@@ -56,3 +56,15 @@ mission:
     horizon: 10
     alert_max: 10
     actions: ["stealth", "covert", "overt"]
+  finance:
+    value_usd: 5000000.0
+    denomination: 100.0
+    purity: 0.6
+  logistics:
+    origin: "IC"
+    destination: "FL"
+    capacity_kg: 25.0
+    endurance_nm: 4257.0
+  surveillance:
+    actions: 5
+    detection_threshold: 0.5

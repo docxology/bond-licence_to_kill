@@ -15,6 +15,17 @@ the frozen BOND-API `MissionProvider` protocol:
    been revoked must trade mission gain against escalating adversary alert
    and blowback, solved exactly by finite-horizon dynamic programming.
 
+The package deepens those domains with three further interoperating models:
+
+4. **narcotics-finance economics** — the supply-chain price/purity ladder
+   and the cash physics (mass, volume, hold manifest) behind the cartel's
+   US${{FIN_VALUE_USD}} courier parcel;
+5. **operations logistics** — risk-adjusted Dijkstra routing of the
+   Wavekrest campaign, exact 0/1-knapsack gadget loadout, and trip
+   projection against fuel endurance;
+6. **surveillance / watchlist** — a logistic detection model over a covert
+   action sequence, with exact and heuristic survival-optimal ordering.
+
 On the canonical seeded network (codename {{BOND_CODENAME}}, seed {{SEED}})
 the analysis detects {{LAUNDERING_CYCLES}} money-returning cycle(s) and
 {{LAUNDERING_FUNNELS}} funnels across {{LAUNDERING_NODES}} nodes and
@@ -26,7 +37,12 @@ profile resolves a gross tonnage of {{VESSEL_GROSS_TONNAGE}} and flags
 The rogue-00 dynamic program over {{ROGUE_HORIZON}} steps returns an optimal
 expected mission value of {{ROGUE_OPTIMAL_VALUE}} with a
 {{ROGUE_FIRST_ACTION}} opening — evidence that, under a revoked licence,
-unsanctioned escalation is strictly a last resort.
+unsanctioned escalation is strictly a last resort. The layered logistics
+route cuts cumulative interdiction risk by {{LOG_RISK_REDUCTION}} versus the
+direct leg ({{LOG_ROUTE_RISK}} vs {{LOG_DIRECT_RISK}}), and the covert
+campaign's survival-optimal sequence completes undetected with probability
+{{SURV_SUCCESS}} before watchlist compromise at action
+{{SURV_COMPROMISE_STEP_ONE}}.
 
 Every result is deterministic and reproducible: fixed seed, no random draws
 in the detectors, no wall-clock in persisted outputs, and ≥ 90% line + branch

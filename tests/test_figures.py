@@ -9,6 +9,7 @@ from __future__ import annotations
 from licence_to_kill.figures.plots import (
     generate_figures,
     plot_laundering_network,
+    plot_operations_logistics,
     plot_rogue_escalation,
     plot_vessel_forensic_scan,
 )
@@ -20,6 +21,7 @@ def test_generate_figures_produces_all(tmp_path):
         "laundering_network",
         "rogue_escalation",
         "vessel_forensic_scan",
+        "operations_logistics",
     }
     for path in figures.values():
         assert path.exists()
@@ -38,3 +40,4 @@ def test_individual_plotters_return_paths(tmp_path):
     assert plot_laundering_network(tmp_path).exists()
     assert plot_rogue_escalation(tmp_path).exists()
     assert plot_vessel_forensic_scan(tmp_path).exists()
+    assert plot_operations_logistics(tmp_path).exists()

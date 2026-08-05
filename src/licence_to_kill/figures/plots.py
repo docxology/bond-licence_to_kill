@@ -17,6 +17,11 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt  # noqa: E402  (backend set above)
 
 from licence_to_kill.laundering_graph import analyze_laundering, build_sanchez_network
+from licence_to_kill.operations_logistics import (
+    OperationNetwork,
+    canonical_logistics_params,
+    shortest_path,
+)
 from licence_to_kill.rogue_ops import build_rogue_model, solve_optimal_policy
 from licence_to_kill.vessel_forensics import WAVEKREST_CLASS, forensic_report
 
@@ -166,6 +171,61 @@ def plot_vessel_forensic_scan(outdir: Path) -> Path:
     return path
 
 
+def plot_operations_logistics(outdir: Path) -> Path:
+    """Render the operations network with the risk-optimal route highlighted."""
+    params = canonical_logistics_params()
+    network = OperationNetwork(params["legs"])
+    optimal = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="risk")
+    direct = shortest_path(network, str(params["origin"]), str(params["destination"]), weight="distance")
+    assert optimal is not None and direct is not None
+
+    # Deterministic hub layout (left → right by operational stage).
+    positions = {"IC": (0.0, 0.0), "BOG": (0.8, -1.2), "HK": (2.2, 0.6), "FL": (3.4, 0.0)}
+    optimal_edges = {(leg.origin, leg.destination) for leg in optimal.legs}
+    direct_edges = {(leg.origin, leg.destination) for leg in direct.legs}
+
+    fig, ax = plt.subplots(figsize=(9, 5.4))
+    for leg in network.legs():
+        x0, y0 = positions[leg.origin]
+        x1, y1 = positions[leg.destination]
+        on_optimal = (leg.origin, leg.destination) in optimal_edges
+        on_direct = (leg.origin, leg.destination) in direct_edges
+        colour = "#c0392b" if on_optimal else ("#f5b041" if on_direct else "#95a5a6")
+        weight = 2.4 if on_optimal else 1.2
+        ax.annotate(
+            "",
+            xy=(x1, y1),
+            xytext=(x0, y0),
+            arrowprops=dict(arrowstyle="-|>", color=colour, lw=weight, shrinkA=6, shrinkB=6),
+        )
+        midx, midy = (x0 + x1) / 2, (y0 + y1) / 2
+        ax.text(
+            midx + 0.06,
+            midy + 0.12,
+            f"${leg.cost / 1000:.0f}k, r={leg.risk:.2f}",
+            fontsize=7,
+            color="#34495e",
+        )
+    for node, (x, y) in positions.items():
+        ax.scatter(x, y, s=520, color="#2c3e50", edgecolors="white", linewidths=1.4, zorder=3)
+        ax.text(x, y, node, ha="center", va="center", color="white", fontsize=10, fontweight="bold", zorder=4)
+    ax.set_title(
+        f"ROGUE operations network — risk-optimal route {' → '.join(optimal.path)} "
+        f"(cum. risk {optimal.cumulative_risk:.3f} vs direct {direct.cumulative_risk:.3f})"
+    )
+    ax.set_xlim(-0.6, 4.0)
+    ax.set_ylim(-2.0, 1.6)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel("operational progression (Isthmus City → Florida)")
+    fig.tight_layout()
+    path = outdir / "operations_logistics.png"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=140)
+    plt.close(fig)
+    return path
+
+
 def generate_figures(outdir: Path) -> dict[str, Path]:
     """Generate every ROGUE figure; return ``name → path`` in stable order."""
     outdir = Path(outdir)
@@ -173,4 +233,5 @@ def generate_figures(outdir: Path) -> dict[str, Path]:
         "laundering_network": plot_laundering_network(outdir),
         "rogue_escalation": plot_rogue_escalation(outdir),
         "vessel_forensic_scan": plot_vessel_forensic_scan(outdir),
+        "operations_logistics": plot_operations_logistics(outdir),
     }

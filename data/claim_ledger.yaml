@@ -21,3 +21,19 @@ claims:
     source: Bellman 1957 dynamic programming
     value: "exact finite-horizon optimal policy via backward induction"
     used_in: rogue_ops.solve_optimal_policy
+  - id: dijkstra-routing
+    source: Dijkstra 1959
+    value: "shortest path with additive survival weights (-ln(1-r))"
+    used_in: operations_logistics.shortest_path
+  - id: knapsack-dp
+    source: Kellerer, Pferschy, Pisinger 2004
+    value: "exact 0/1 knapsack by dynamic programming over gram-scaled weights"
+    used_in: operations_logistics.gadget_knapsack
+  - id: smith-scheduling
+    source: Smith 1956 ratio rule
+    value: "value-per-exposure ordering for sequential risk scheduling"
+    used_in: surveillance.heuristic_action_order
+  - id: currency-spec
+    source: US Bureau of Engraving and Printing
+    value: "note mass ~1.0 g, volume ~1.13 cm^3"
+    used_in: narcotics_finance.cash_mass_kg / cash_volume_m3

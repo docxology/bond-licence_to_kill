@@ -36,8 +36,8 @@ def test_brief_fields():
     assert isinstance(brief, MissionBrief)
     assert brief.film == "licence_to_kill"
     assert brief.codename == "ROGUE"
-    assert len(brief.objectives) == 3
-    assert len(brief.assets) == 3
+    assert len(brief.objectives) == 6
+    assert len(brief.assets) == 6
     assert any(c.kind == "determinism" for c in brief.constraints)
 
 
@@ -45,15 +45,23 @@ def test_recon_findings():
     report = MissionProvider().recon(ReconRequest(goal="survey the network"))
     assert isinstance(report, ReconReport)
     labels = {f.label for f in report.findings}
-    assert {"goal", "layering", "integration", "vessel", "rogue"} <= labels
+    assert {"goal", "layering", "integration", "vessel", "rogue", "finance", "logistics", "surveillance"} <= labels
 
 
 def test_plan_steps():
     provider = MissionProvider()
     plan = provider.plan(provider.brief())
     assert isinstance(plan, MissionPlan)
-    assert len(plan.steps) == 4
-    assert plan.steps[0].name == "network"
+    assert len(plan.steps) == 7
+    assert {s.name for s in plan.steps} == {
+        "network",
+        "vessel",
+        "rogue",
+        "finance",
+        "logistics",
+        "surveillance",
+        "verify",
+    }
 
 
 def test_execute_deterministic_and_provenance():
@@ -67,7 +75,16 @@ def test_execute_deterministic_and_provenance():
     assert first.provenance.seed == 0
     assert first.provenance.wall_time_s == 0.0
     assert first.provenance.package_version == "0.1.0"
-    assert set(first.results) >= {"laundering", "vessel", "rogue", "seed", "input_hash"}
+    assert set(first.results) >= {
+        "laundering",
+        "vessel",
+        "rogue",
+        "narcotics_finance",
+        "operations_logistics",
+        "surveillance",
+        "seed",
+        "input_hash",
+    }
 
 
 def test_execute_results_match_domain():
@@ -80,6 +97,14 @@ def test_execute_results_match_domain():
     assert vessel["num_anomalies"] == 2
     rogue = outcome.results["rogue"]
     assert rogue["first_action"] == "stealth"
+    finance = outcome.results["narcotics_finance"]
+    assert finance["bills"] == 50_000
+    assert finance["manifest"]["feasible"] is True
+    logistics = outcome.results["operations_logistics"]
+    assert logistics["route"]["path"] == ["IC", "HK", "FL"]
+    assert logistics["loadout"]["value"] == pytest.approx(32.0)
+    surveillance = outcome.results["surveillance"]
+    assert surveillance["compromise_step"] == 4
 
 
 def test_debrief_lessons_and_passthrough():
@@ -87,14 +112,14 @@ def test_debrief_lessons_and_passthrough():
     outcome = provider.execute(provider.plan(provider.brief()))
     debrief = provider.debrief(outcome)
     assert debrief.outcome is outcome
-    assert len(debrief.lessons) == 4
+    assert len(debrief.lessons) == 7
 
 
 def test_full_run_mission_flow():
     provider = MissionProvider()
     debrief = run_mission(provider, ReconRequest(goal="complete ROGUE"))
     assert debrief.outcome.success is True
-    assert len(debrief.lessons) == 4
+    assert len(debrief.lessons) == 7
 
 
 def test_run_rogue_mission_convenience():
@@ -109,13 +134,24 @@ def test_gadget_registry_register():
         "laundering_network",
         "vessel_forensics",
         "rogue_risk_model",
+        "narcotics_finance",
+        "operations_router",
+        "surveillance_model",
         "network_manifest",
     }
     manifest = GADGET_REGISTRY.lookup("licence_to_kill", "network_manifest")
     assert manifest["seed"] == 0
+    assert GADGET_REGISTRY.contains("licence_to_kill", "surveillance_model")
 
 
 def test_pure_domain_modules_are_bond_api_free():
-    for name in ("laundering_graph.py", "vessel_forensics.py", "rogue_ops.py"):
+    for name in (
+        "laundering_graph.py",
+        "vessel_forensics.py",
+        "rogue_ops.py",
+        "narcotics_finance.py",
+        "operations_logistics.py",
+        "surveillance.py",
+    ):
         source = (_SRC / name).read_text(encoding="utf-8")
         assert "bond_api" not in source, f"{name} must stay bond-api-free"

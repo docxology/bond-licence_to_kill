@@ -1,10 +1,11 @@
 """mission.py — the ROGUE MissionProvider adapter for licence_to_kill.
 
 This is the thin protocol adapter between the pure domain core
-(:mod:`laundering_graph`, :mod:`vessel_forensics`, :mod:`rogue_ops`) and the
-FROZEN ``bond-api`` contract. Discovery (``bond_api.discovery``) imports
-``licence_to_kill.mission``, instantiates ``MissionProvider()`` with no args,
-and drives the five lifecycle stages.
+(:mod:`laundering_graph`, :mod:`vessel_forensics`, :mod:`rogue_ops`,
+:mod:`narcotics_finance`, :mod:`operations_logistics`, :mod:`surveillance`)
+and the FROZEN ``bond-api`` contract. Discovery (``bond_api.discovery``)
+imports ``licence_to_kill.mission``, instantiates ``MissionProvider()`` with
+no args, and drives the five lifecycle stages.
 
 Only this module imports ``bond_api``; the domain core stays importable
 without it (fallback if the path dependency ever fails).
@@ -38,11 +39,24 @@ from licence_to_kill.laundering_graph import (
     analyze_laundering,
     build_sanchez_network,
 )
-from licence_to_kill.rogue_ops import (
-    RogueModel,
-    RogueReport,
-    build_rogue_model,
-    solve_optimal_policy,
+from licence_to_kill.narcotics_finance import (
+    NarcoticsFinanceReport,
+    analyze_narcotics_finance,
+    canonical_finance_params,
+)
+from licence_to_kill.operations_logistics import (
+    OperationNetwork,
+    OperationsLogisticsReport,
+    analyze_operations_logistics,
+    canonical_logistics_params,
+)
+from licence_to_kill.rogue_ops import RogueModel, RogueReport, build_rogue_model, solve_optimal_policy
+from licence_to_kill.surveillance import (
+    CovertAction,
+    SurveillanceModel,
+    SurveillanceReport,
+    analyze_surveillance,
+    canonical_surveillance_params,
 )
 from licence_to_kill.vessel_forensics import (
     VesselForensicReport,
@@ -70,22 +84,53 @@ _VESSEL_OBSERVED: dict[str, float] = {
 #: The canonical rogue risk model (horizon used by plan + recon).
 _ROGUE_MODEL: RogueModel = build_rogue_model()
 
+#: Canonical narcotics-finance / logistics / surveillance scenarios (single
+#: source of truth shared with ``manuscript_variables.py``).
+_FINANCE = canonical_finance_params()
+_LOGISTICS = canonical_logistics_params()
+_SURVEILLANCE = canonical_surveillance_params()
+_LOGISTICS_NETWORK = OperationNetwork(_LOGISTICS["legs"])
+_ACTIONS: tuple[CovertAction, ...] = _SURVEILLANCE["actions"]
+_SURV_MODEL: SurveillanceModel = _SURVEILLANCE["model"]
+
 
 def _input_hash(graph: TransactionGraph) -> str:
-    """Stable fingerprint of the mission's canonical inputs."""
+    """Stable fingerprint of the mission's canonical inputs (all six domains)."""
     payload: dict[str, object] = {
         "seed": _SEED,
         "sources": list(_SOURCES),
         "sinks": list(_SINKS),
         "nodes": list(graph.nodes()),
         "edges": [{"s": e.source, "t": e.target, "a": e.amount, "x": e.sector} for e in graph.edges()],
+        "finance": {
+            "value_usd": _FINANCE["value_usd"],
+            "denomination": _FINANCE["denomination"],
+            "stages": list(_FINANCE["stages"]),
+            "purity": _FINANCE["purity"],
+        },
+        "logistics": {
+            "origin": _LOGISTICS["origin"],
+            "destination": _LOGISTICS["destination"],
+            "legs": [leg.as_dict() for leg in _LOGISTICS["legs"]],
+            "gadgets": [{"name": g.name, "weight_kg": g.weight_kg, "value": g.value} for g in _LOGISTICS["gadgets"]],
+            "capacity_kg": _LOGISTICS["capacity_kg"],
+        },
+        "surveillance": {
+            "actions": [
+                {"name": a.name, "signature": a.signature, "watch_increment": a.watch_increment, "value": a.value}
+                for a in _ACTIONS
+            ],
+            "beta_0": _SURV_MODEL.beta_0,
+            "beta_watch": _SURV_MODEL.beta_watch,
+            "beta_signature": _SURV_MODEL.beta_signature,
+        },
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 #: Gadgets this film registers with the BOND-API GadgetRegistry (opaque,
-#: deterministic callables + the canonical network manifest).
+#: deterministic callables + canonical manifests).
 GADGET_REGISTRY = GadgetRegistry()
 GADGET_REGISTRY.register(
     FILM,
@@ -94,6 +139,9 @@ GADGET_REGISTRY.register(
         "laundering_network": build_sanchez_network,
         "vessel_forensics": forensic_report,
         "rogue_risk_model": solve_optimal_policy,
+        "narcotics_finance": analyze_narcotics_finance,
+        "operations_router": analyze_operations_logistics,
+        "surveillance_model": analyze_surveillance,
         "network_manifest": {
             "sources": list(_SOURCES),
             "sinks": list(_SINKS),
@@ -103,13 +151,33 @@ GADGET_REGISTRY.register(
 )
 
 
-def _run_domain_analyses() -> tuple[TransactionGraph, LaunderingReport, VesselForensicReport, RogueReport]:
-    """Deterministically run the three domain analyses on canonical inputs."""
+def _run_domain_analyses() -> tuple[
+    TransactionGraph,
+    LaunderingReport,
+    VesselForensicReport,
+    RogueReport,
+    NarcoticsFinanceReport,
+    OperationsLogisticsReport,
+    SurveillanceReport,
+]:
+    """Deterministically run all six domain analyses on canonical inputs."""
     graph = build_sanchez_network(seed=_SEED)
     launder = analyze_laundering(graph, _SOURCES, _SINKS)
     vessel = forensic_report(WAVEKREST_CLASS, observed=_VESSEL_OBSERVED)
     rogue = solve_optimal_policy(_ROGUE_MODEL)
-    return graph, launder, vessel, rogue
+    finance = analyze_narcotics_finance(**_FINANCE)
+    logistics = analyze_operations_logistics(
+        _LOGISTICS_NETWORK,
+        str(_LOGISTICS["origin"]),
+        str(_LOGISTICS["destination"]),
+        _LOGISTICS["gadgets"],
+        float(_LOGISTICS["capacity_kg"]),
+        float(_LOGISTICS["speed_knots"]),
+        float(_LOGISTICS["endurance_nm"]),
+        float(_LOGISTICS["refuel_hours"]),
+    )
+    surveillance = analyze_surveillance(_ACTIONS, _SURV_MODEL)
+    return graph, launder, vessel, rogue, finance, logistics, surveillance
 
 
 class MissionProvider:  # noqa: N801 — class name is fixed by the discovery contract
@@ -149,10 +217,37 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                     "actions": list(_ROGUE_MODEL.actions),
                 },
             ),
+            Asset(
+                kind="finance",
+                name="narcotics_manifest",
+                payload={
+                    "value_usd": _FINANCE["value_usd"],
+                    "denomination": _FINANCE["denomination"],
+                    "stages": [str(s) for s in _FINANCE["stages"]],
+                },
+            ),
+            Asset(
+                kind="logistics",
+                name="operations_network",
+                payload={
+                    "origin": _LOGISTICS["origin"],
+                    "destination": _LOGISTICS["destination"],
+                    "legs": len(_LOGISTICS["legs"]),
+                    "capacity_kg": _LOGISTICS["capacity_kg"],
+                },
+            ),
+            Asset(
+                kind="surveillance",
+                name="watchlist_model",
+                payload={
+                    "actions": len(_ACTIONS),
+                    "threshold": _SURV_MODEL.detection_threshold,
+                },
+            ),
         )
 
     def brief(self) -> MissionBrief:
-        """Declare the ROGUE mission: three objectives over the three domains."""
+        """Declare the ROGUE mission: six objectives across the six domains."""
         return MissionBrief(
             film=self.film,
             codename=CODENAME,
@@ -160,6 +255,9 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                 "detect layering and integration in the Sanchez money-laundering network",
                 "forensic anomaly scan of the Wavekrest-class mothership",
                 "risk-optimised rogue-00 engagement plan under a revoked licence",
+                "quantify narcotics-finance economics and cash-manifest feasibility",
+                "route the operation and select the gadget loadout under risk and weight",
+                "schedule covert actions against adversary watchlist accumulation",
             ),
             assets=self._brief_assets(),
             constraints=(
@@ -171,8 +269,8 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
         )
 
     def recon(self, request: ReconRequest) -> ReconReport:
-        """Survey the ROGUE domains against the canonical assets and the goal."""
-        _, launder, vessel, rogue = _run_domain_analyses()
+        """Survey all six ROGUE domains against the canonical assets and the goal."""
+        _, launder, vessel, rogue, finance, logistics, surveillance = _run_domain_analyses()
         return ReconReport(
             findings=(
                 Finding(label="goal", detail=request.goal),
@@ -197,11 +295,31 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                     label="rogue",
                     detail=(f"optimal_value={rogue.optimal_value:.3f} first_action={rogue.first_action}"),
                 ),
+                Finding(
+                    label="finance",
+                    detail=(
+                        f"cash_mass_kg={finance.mass_kg:.1f} manifest={finance.manifest.feasible} "
+                        f"street_per_g={finance.street_per_gram:.2f}"
+                    ),
+                ),
+                Finding(
+                    label="logistics",
+                    detail=(
+                        f"route={'→'.join(logistics.route.path)} risk={logistics.route.cumulative_risk:.3f} "
+                        f"loadout_value={logistics.loadout.value:.0f}"
+                    ),
+                ),
+                Finding(
+                    label="surveillance",
+                    detail=(
+                        f"success={surveillance.success_probability:.3f} compromise={surveillance.compromise_step}"
+                    ),
+                ),
             )
         )
 
     def plan(self, brief: MissionBrief) -> MissionPlan:
-        """Plan the four deterministic steps matching the mission objectives."""
+        """Plan the seven deterministic steps matching the mission objectives."""
         return MissionPlan(
             steps=(
                 Step(
@@ -211,13 +329,20 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                 ),
                 Step("vessel", "forensic_scan", params={"profile": WAVEKREST_CLASS.name}),
                 Step("rogue", "solve_optimal_policy", params={"horizon": _ROGUE_MODEL.horizon}),
+                Step("finance", "narcotics_finance", params={"value_usd": _FINANCE["value_usd"]}),
+                Step(
+                    "logistics",
+                    "operations_router",
+                    params={"origin": _LOGISTICS["origin"], "destination": _LOGISTICS["destination"]},
+                ),
+                Step("surveillance", "watchlist_model", params={"actions": len(_ACTIONS)}),
                 Step("verify", "cross_check_determinism", params={"seed": _SEED}),
             )
         )
 
     def execute(self, plan: MissionPlan) -> MissionOutcome:
         """Run the full deterministic ROGUE analysis and return its outcome."""
-        graph, launder, vessel, rogue = _run_domain_analyses()
+        graph, launder, vessel, rogue, finance, logistics, surveillance = _run_domain_analyses()
         results: dict[str, Any] = {
             "steps_completed": len(plan.steps),
             "outputs": tuple(step.name for step in plan.steps),
@@ -226,6 +351,9 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
             "laundering": launder.as_dict(),
             "vessel": vessel.as_dict(),
             "rogue": rogue.as_dict(),
+            "narcotics_finance": finance.as_dict(),
+            "operations_logistics": logistics.as_dict(),
+            "surveillance": surveillance.as_dict(),
         }
         return MissionOutcome(
             success=True,
@@ -246,6 +374,9 @@ class MissionProvider:  # noqa: N801 — class name is fixed by the discovery co
                 "layering is detectable as cyclic + funnel imbalance in the flow graph",
                 "a 'fishing' mothership's physics betray covert cargo before its crew does",
                 "a revoked licence trades gain against escalating blowback — the DP finds the optimum",
+                "cash physics bound a laundering run before the courier ever flies",
+                "the layered route cuts cumulative voyage risk below the direct one",
+                "adversary watchlists price every covert action — order matters",
                 "deterministic provenance makes every ROGUE result independently audit-able",
             ),
         )

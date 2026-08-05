@@ -22,11 +22,17 @@ PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 - `src/licence_to_kill/vessel_forensics.py` — Wavekrest-class forensic
   physics + anomaly scan
 - `src/licence_to_kill/rogue_ops.py` — revoked-licence risk DP
+- `src/licence_to_kill/narcotics_finance.py` — price/purity ladder + cash
+  physics + hold manifest
+- `src/licence_to_kill/operations_logistics.py` — Dijkstra routing +
+  gadget knapsack + trip plan
+- `src/licence_to_kill/surveillance.py` — watchlist detection +
+  survival-optimal ordering
 - `src/licence_to_kill/mission.py` — `bond-api` `MissionProvider` (the only
   `bond_api` import)
 - `src/licence_to_kill/manuscript_variables.py` + `figures/plots.py`
 - `scripts/` — thin phase CLIs + preflight + manuscript generation
-- `tests/` — zero-mock, real-data, ~99 % line+branch
+- `tests/` — zero-mock, real-data, ~99.6 % line+branch
 
 ## Quick commands
 

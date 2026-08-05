@@ -18,6 +18,13 @@ enforced at ≥ 90 % line + branch on `src/` via `pyproject.toml`
   branch, and forensic-report determinism.
 - **`test_rogue_ops.py`** — model validation, logistic bounds/monotonicity,
   escalation, policy valuation, DP-beats-naive, and report determinism.
+- **`test_narcotics_finance.py`** — price/purity chain, US-note cash physics,
+  every manifest feasibility branch, and trip counting.
+- **`test_operations_logistics.py`** — Dijkstra routing (cost/distance/risk,
+  stale-heap guard, unreachable), exact 0/1-knapsack, trip plan (refuelling
+  and no-mid-leg-refuel modes).
+- **`test_surveillance.py`** — logistic detection, product-survival,
+  exact-vs-heuristic ordering, and compromise timing.
 - **`test_mission.py`** — protocol conformance (`isinstance` against the
   runtime-checkable protocol), full `run_mission` flow, end-to-end
   determinism, provenance, gadget registration, and the bond-api-free guard

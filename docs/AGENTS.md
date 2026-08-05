@@ -8,7 +8,7 @@ the zero-mock testing contract.
 
 ## Hard constraints enforced here
 
-- **Pure domain core** — the three concept modules never import `bond_api`
+- **Pure domain core** — the six concept modules never import `bond_api`
   or `infrastructure` (structural guard in `tests/test_mission.py`).
 - **Token-only manuscripts** — every numeric result is an injected token.
 - **≥ 90 % line + branch coverage** on `src/` (live number in the shared

@@ -12,10 +12,16 @@ adapter (`mission.py`).
   displacement, fuel endurance, route plausibility, `anomaly_scan`.
 - `licence_to_kill/rogue_ops.py` — logistic blowback, escalation,
   exact DP `solve_optimal_policy`.
+- `licence_to_kill/narcotics_finance.py` — price/purity ladder, cash
+  physics, hold manifest feasibility.
+- `licence_to_kill/operations_logistics.py` — Dijkstra routing, 0/1
+  knapsack loadout, fuel-endurance trip plan.
+- `licence_to_kill/surveillance.py` — watchlist detection, survival-optimal
+  action ordering (exact ≤ 8, ratio heuristic beyond).
 - `licence_to_kill/mission.py` — frozen `bond_api` `MissionProvider` adapter
   + `GadgetRegistry` registration (the only `bond_api` import).
 - `licence_to_kill/manuscript_variables.py` — `{{TOKEN}}` hydration.
-- `licence_to_kill/figures/plots.py` — three deterministic figures.
+- `licence_to_kill/figures/plots.py` — four deterministic figures.
 
 ## Rules
 

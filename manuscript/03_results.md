@@ -66,3 +66,49 @@ dynamic program evaluates **{{ROGUE_POLICY_CELLS}}** state cells and returns:
 
 ![Rogue-00 escalation: alert/exposure build while the blowback hazard climbs
 under the optimal policy.](figures/rogue_escalation.png){#fig:rogue}
+
+## 3.4 Narcotics-finance economics
+
+The canonical courier parcel is valued at **${{FIN_VALUE_USD}}** in
+**${{FIN_DENOMINATION}}** notes — **{{FIN_BILLS}}** bills. US-currency note
+physics give a bulk-cash mass of **{{FIN_CASH_MASS_KG}} kg** and a volume of
+just **{{FIN_CASH_VOLUME_M3}} m³** (bulk density ≈ {{FIN_CASH_DENSITY}}
+kg/m³). The supply chain prices a kilogram at **${{FIN_WHOLESALE_PER_KG}}**
+wholesale and **${{FIN_STREET_PER_KG}}** at street level (**${{FIN_STREET_PER_GRAM}}**
+per gram), or **${{FIN_STREET_PURE_GRAM}}** per *pure* gram at 60 % purity —
+the same value is quietly present at every stage.
+
+Against the Wavekrest-class hold (520 m³, 300 t usable mass), the parcel is
+**{{FIN_MANIFEST_FEASIBLE}}** to fit and needs **{{FIN_TRIPS}}** trip(s).
+The money is compact; the hard constraint is the cover cargo that must blend
+with it — not the cash itself.
+
+## 3.5 Operations logistics
+
+Risk-optimal routing over the campaign network returns the layered path
+**{{LOG_ROUTE}}** ({{LOG_ROUTE_LEGS}} legs, {{LOG_ROUTE_NM}} nm, costing
+**${{LOG_ROUTE_COST}}**) with a cumulative interdiction risk of
+**{{LOG_ROUTE_RISK}}** — against **{{LOG_DIRECT_RISK}}** for the direct
+single leg, a **{{LOG_RISK_REDUCTION}}** reduction — the same pairing the
+finance graph demonstrates in the money layer (@fig:operations). The voyage
+requires **{{LOG_REFUELS}}** refuelling stops (against the Wavekrest's
+~4,257 nm endurance) for roughly **{{LOG_TRIP_DAYS}}** days at sea
+(**{{LOG_TRIP_HOURS}}** hours). The gadget loadout under a 25 kg budget
+selects **{{LOG_KNAPSACK_ITEMS}}** items (including the Walther PPK, explosive
+charges, and the surveillance kit) worth **{{LOG_KNAPSACK_VALUE}}** mission
+points at **{{LOG_KNAPSACK_WEIGHT}} kg**.
+
+![ROGUE operations network with the risk-optimal route highlighted against
+the direct single leg.](figures/operations_logistics.png){#fig:operations}
+
+## 3.6 Surveillance and watchlist
+
+Across the **{{SURV_ACTION_COUNT}}**-action covert campaign, the
+survival-optimal order — opening with *{{SURV_FIRST_ACTION}}*, the lowest-
+signature move — achieves a probability of completing undetected of
+**{{SURV_SUCCESS}}**. Cumulative detection crosses the 0.5 threshold on the
+**{{SURV_COMPROMISE_STEP_ONE}}**th action, and the peak step hazard reaches
+**{{SURV_PEAK_HAZARD}}**: the adversary's watchlist eventually prices the
+campaign in, and the operator wins only by doing the cheaply-detectable work
+first and the compounding-mistake last.
+

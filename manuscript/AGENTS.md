@@ -11,8 +11,8 @@ prose is an injected token, never handwritten.
 |---|---|
 | `00_abstract.md` | Mission abstract + headline results |
 | `01_introduction.md` | The ROGUE mission, design principles |
-| `02_methodology.md` | Laundering graph, vessel physics, rogue DP |
-| `03_results.md` | All results + all three figures |
+| `02_methodology.md` | Laundering graph, vessel physics, rogue DP, finance, logistics, surveillance |
+| `03_results.md` | All results + all four figures |
 | `04_conclusion.md` | Takeaways |
 | `05_experimental_setup.md` | Parameters, software environment |
 | `06_reproducibility.md` | Determinism contract, provenance, artifacts |

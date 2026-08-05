@@ -32,6 +32,11 @@ Reference figures by Pandoc-crossref label and name generated files under
 | `{#fig:laundering}` | `figures/laundering_network.png` | `src/licence_to_kill/figures/plots.py::plot_laundering_network` |
 | `{#fig:rogue}` | `figures/rogue_escalation.png` | `...::plot_rogue_escalation` |
 | `{#fig:vessel}` | `figures/vessel_forensics.png` | `...::plot_vessel_forensic_scan` |
+| `{#fig:operations}` | `figures/operations_logistics.png` | `...::plot_operations_logistics` |
+
+Token families: `BOND_*`, `LAUNDERING_*`, `VESSEL_*`, `ROGUE_*`, plus the
+phase-4 domain tokens `FIN_*` (narcotics finance), `LOG_*` (operations
+logistics), and `SURV_*` (surveillance / watchlist).
 
 Embed with a markdown image line carrying the label (see `03_results.md`);
 reference in prose as `[@fig:label]` or `@fig:label`.

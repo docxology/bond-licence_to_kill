@@ -87,3 +87,23 @@ def test_all_manuscript_tokens_are_generated():
         used.update(_TOKEN_RE.findall(section.read_text(encoding="utf-8")))
     missing = sorted(t for t in used if t not in tokens)
     assert missing == [], f"manuscript tokens not generated: {missing}"
+
+
+def test_domain_extension_tokens():
+    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    # finance
+    assert tokens["FIN_STREET_PURE_GRAM"] == "30"
+    assert tokens["FIN_CASH_MASS_KG"] == "50.0"
+    assert tokens["FIN_BILLS"] == "50,000"
+    # logistics
+    assert tokens["LOG_ROUTE"] == "IC → HK → FL"
+    assert tokens["LOG_KNAPSACK_VALUE"] == "32"
+    assert tokens["LOG_KNAPSACK_WEIGHT"] == "17.7"
+    assert tokens["LOG_RISK_REDUCTION"] == "30.7%"
+    # surveillance
+    assert tokens["SURV_SUCCESS"] == "0.263"
+    assert tokens["SURV_COMPROMISE_STEP_ONE"] == "5"
+    assert tokens["SURV_PEAK_HAZARD"] == "0.633"
+    # all three new prefixes present
+    for prefix in ("FIN_", "LOG_", "SURV_"):
+        assert any(k.startswith(prefix) for k in tokens)

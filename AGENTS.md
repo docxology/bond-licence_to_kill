@@ -19,6 +19,9 @@ deterministic algorithm.
 | Money-laundering graph | `src/licence_to_kill/laundering_graph.py` | DFS cycle detection, funnel/concentration analysis, conservative dirty-flow propagation, integration score, mixing entropy, composite layering score |
 | Vessel forensics | `src/licence_to_kill/vessel_forensics.py` | IMO gross tonnage, hydrostatic displacement, cubic-law fuel endurance, route plausibility, anomaly scan |
 | Rogue-00 risk model | `src/licence_to_kill/rogue_ops.py` | Logistic blowback hazard, escalation projection, exact backward-induction dynamic programming |
+| Narcotics-finance economics | `src/licence_to_kill/narcotics_finance.py` | Supply-chain price/purity ladder, note mass/volume cash physics, hold manifest feasibility, trip count |
+| Operations logistics | `src/licence_to_kill/operations_logistics.py` | Risk-adjusted Dijkstra routing, exact 0/1-knapsack gadget loadout, fuel-endurance trip projection |
+| Surveillance / watchlist | `src/licence_to_kill/surveillance.py` | Logistic detection hazard, product-survival, exact/ratio-rule survival-optimal ordering |
 
 ## Layer contract
 
@@ -47,7 +50,7 @@ lifecycle (brief → recon → plan → execute → debrief) deterministically
 
 ```bash
 uv sync --extra dev
-uv run pytest tests/ --cov=src --cov-fail-under=90   # 73 tests, ~99 % line+branch
+uv run pytest tests/ --cov=src --cov-fail-under=90   # 124 tests, ~99.6 % line+branch
 uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
 uv run mypy src/ scripts/
 ```

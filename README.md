@@ -2,7 +2,7 @@
 
 PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 **ROGUE**. Deterministic special-agent mission software implementing the
-frozen `bond-api` `MissionProvider` protocol over three pure domain cores.
+frozen `bond-api` `MissionProvider` protocol over six pure domain cores.
 
 ## What it does
 
@@ -17,8 +17,17 @@ frozen `bond-api` `MissionProvider` protocol over three pure domain cores.
 3. **Rogue-00 risk model** (`src/licence_to_kill/rogue_ops.py`) — exact
    finite-horizon dynamic programming for a revoked-licence operation,
    trading mission gain against escalating alert and blowback.
+4. **Narcotics-finance economics** (`src/licence_to_kill/narcotics_finance.py`) —
+   supply-chain price/purity ladder and cash physics (note mass/volume,
+   hold manifest feasibility, trips) behind the cartel's courier parcel.
+5. **Operations logistics** (`src/licence_to_kill/operations_logistics.py`) —
+   risk-adjusted Dijkstra routing, exact 0/1-knapsack gadget loadout, and
+   trip projection against fuel endurance.
+6. **Surveillance / watchlist** (`src/licence_to_kill/surveillance.py`) —
+   logistic detection risk over a covert-action sequence with exact (n ≤ 8)
+   and ratio-rule survival-optimal ordering.
 
-All three are deterministic (seeded network, closed-form physics, exact DP),
+All six are deterministic (seeded network, closed-form physics, exact DP),
 infrastructure-free, and exposed through a thin `MissionProvider` adapter
 (`src/licence_to_kill/mission.py`).
 
@@ -45,22 +54,25 @@ uv run python scripts/z_generate_manuscript_variables.py
 
 ```
 src/licence_to_kill/
-  laundering_graph.py   # Sanchez laundering graph (cycle/funnel/integration)
-  vessel_forensics.py   # Wavekrest-class forensic physics
-  rogue_ops.py          # revoked-licence risk DP
-  mission.py            # bond-api MissionProvider adapter + gadget registry
+  laundering_graph.py      # Sanchez laundering graph (cycle/funnel/integration)
+  vessel_forensics.py      # Wavekrest-class forensic physics
+  rogue_ops.py             # revoked-licence risk DP
+  narcotics_finance.py     # supply-chain price/purity + cash physics
+  operations_logistics.py  # Dijkstra routing + gadget knapsack + trip plan
+  surveillance.py          # watchlist detection + survival-optimal ordering
+  mission.py               # bond-api MissionProvider adapter + gadget registry
   manuscript_variables.py
-  figures/plots.py
-scripts/                # thin phase CLIs (brief/recon/plan/execute/debrief) + preflight + z_generate
-tests/                  # zero-mock, real-data, 99 %+ line & branch coverage
-manuscript/             # token-driven ROGUE manuscript + config.yaml + references.bib
-docs/                   # agent instructions, architecture, testing philosophy
+  figures/plots.py         # 4 deterministic figures
+scripts/                   # thin phase CLIs (brief/recon/plan/execute/debrief) + preflight + z_generate
+tests/                     # zero-mock, real-data, 99 %+ line & branch coverage
+manuscript/                # token-driven ROGUE manuscript + config.yaml + references.bib
+docs/                      # agent instructions, architecture, testing philosophy
 ```
 
 ## Verification
 
 ```bash
-uv run pytest tests/ --cov=src --cov-fail-under=90   # 73 tests, ~99 % line+branch
+uv run pytest tests/ --cov=src --cov-fail-under=90   # 124 tests, ~99.6 % line+branch
 uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
 uv run mypy src/ scripts/
 ```

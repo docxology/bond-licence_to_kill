@@ -76,3 +76,47 @@ $(\text{step}, a, e)$ lattice (`solve_optimal_policy`), producing the
 expected optimal value, the first-period action, and the escalation curve
 that follows. No randomness is involved — the result is reproducible to the
 last float.
+
+## 2.4 Narcotics-finance economics
+
+The money behind the cartel is modelled in `narcotics_finance.py` in two
+layers. First, the **supply chain**: a base production cost per kilogram is
+multiplied through the distribution stages (export → wholesale → street) to
+give the stage prices, and purity adjustment divides the retail price by the
+purity fraction so unit economics are stated per *pure* gram
+(`price_chain`, `purity_adjusted_price`). Second, the **cash itself**: using
+the size and mass of a US currency note (≈ 1.0 g, ≈ 1.13 cm³), we convert a
+parcel's value into whole notes, kilograms of mass, and cubic metres of
+volume (`cash_mass_kg`, `cash_volume_m3`), then check whether that parcel
+physically fits the Wavekrest-class hold — volume *and* mass — and how many
+trips it needs (`manifest_feasibility`, `trips_required`).
+
+## 2.5 Operations logistics
+
+The physical campaign is planned in `operations_logistics.py`. Transport
+legs between the film's hubs (Isthmus City, Bogota, Hong Kong, Florida)
+carry a distance, a dollar cost, and an interdiction risk. `shortest_path`
+runs Dijkstra's algorithm [@dijkstra1959] over one of three additive
+weights; for risk the per-leg weight is $-\ln(1-r)$ so the cumulative
+survival product becomes a sum and the returned route minimizes the honest
+$1-\prod(1-r_i)$ cumulative-risk metric. `gadget_knapsack` solves the 0/1
+equipment-loadout problem exactly by dynamic programming [@kellerer2004]
+over gram-scaled weights. `trip_plan` projects the chosen route's legs
+against the vessel's speed and fuel endurance, counting refuel stops and
+elapsed time.
+
+## 2.6 Surveillance and watchlist
+
+An unsanctioned operator's exposure to the adversary's surveillance
+apparatus is modelled in `surveillance.py`. Each covert action has a
+*signature* (detectability) and a *watch increment* (how much it teaches the
+watchlist); the step-$t$ detection hazard is the logistic
+$p_t = \sigma(\beta_0 + \beta_w w_t + \beta_s s_i)$ where $w_t$ is the
+accumulated watchlist weight. A sequence survives only if every step goes
+undetected, so its success probability is $\prod_t(1-p_t)$. The order that
+maximises survival is found exactly by exhaustive permutation search for up
+to 8 actions (`exact_action_order`) and by a value-per-exposure ratio rule
+(Smith's rule [@smith1956]) beyond that (`heuristic_action_order`);
+`compromise_step` reports the first step at which cumulative detection
+crosses a threshold.
+

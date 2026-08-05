@@ -1,10 +1,11 @@
 # Conclusion
 
 {{BOND_TITLE}} demonstrates that a special-agent mission package can be
-entirely deterministic and still analytically rich. The three domains — the
-Sanchez money-laundering graph, the Wavekrest-class vessel forensics, and the
-rogue-00 risk model — each carry a real, testable algorithm, and together
-they render the ROGUE campaign's three field questions answerable in
+entirely deterministic and still analytically rich. The six domains — the
+Sanchez money-laundering graph, the Wavekrest-class vessel forensics, the
+rogue-00 risk model, narcotics-finance economics, operations logistics, and
+the surveillance/watchlist model — each carry a real, testable algorithm, and
+together they render the ROGUE campaign's field questions answerable in
 closed form:
 
 - layering and integration are *measurable* (layering score
@@ -13,7 +14,14 @@ closed form:
   flagged on the canonical mothership);
 - unsanctioned operations have an exact optimal policy — and that policy
   begins with {{ROGUE_FIRST_ACTION}}, not with a frontal assault
-  (optimal value {{ROGUE_OPTIMAL_VALUE}}).
+  (optimal value {{ROGUE_OPTIMAL_VALUE}});
+- the money is bounded by cash *physics* before any courier flies
+  ({{FIN_BILLS}} bills, {{FIN_CASH_MASS_KG}} kg, one hold-trivial trip);
+- routing the campaign cheaply against risk matters — the layered leg cuts
+  cumulative interdiction by {{LOG_RISK_REDUCTION}} ({{LOG_ROUTE_RISK}} vs
+  {{LOG_DIRECT_RISK}});
+- an unsanctioned operator's cover is finite — survival to completion is
+  {{SURV_SUCCESS}}, and order is the operator's only free variable.
 
 Because the entire pipeline runs on a fixed seed ({{SEED}}) with no random
 draws in the detectors and no wall-clock in persisted outputs, every figure

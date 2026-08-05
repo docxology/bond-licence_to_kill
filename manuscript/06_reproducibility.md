@@ -44,7 +44,7 @@ Regenerable output (git-ignored) lives under `output/`:
 - `output/data/mission_results.json` and `output/data/manuscript_variables.json`
   from `scripts/z_generate_manuscript_variables.py`;
 - `output/manuscript/*.md` — numbered sections with generated tokens substituted;
-- `output/figures/*.png` — the three ROGUE figures.
+- `output/figures/*.png` — the four ROGUE figures.
 
 Re-running `scripts/z_generate_manuscript_variables.py` regenerates all of
 these deterministically. Environment: Python {{PYTHON_VERSION}}, NumPy
