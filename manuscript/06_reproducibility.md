@@ -19,10 +19,21 @@ The ROGUE mission is deterministic by construction:
   report-for-report. A figure cannot depict inputs the prose does not
   describe.
 - **No wall-clock in persisted outputs.** Provenance `wall_time_s` is fixed
-  at `0.0`; the only time-sensitive artifact is the `GENERATION_TIMESTAMP`
-  diagnostic, which is explicitly excluded from byte reproducibility.
+  at `0.0` and no token carries a clock reading. A `GENERATION_TIMESTAMP`
+  token was emitted into `output/data/manuscript_variables.json` until it was
+  removed: it made two runs a second apart differ, so the byte-for-byte claim
+  below was false while it existed, and the test guarding it injected a fixed
+  clock and therefore could not see it.
+  `test_no_token_carries_a_wall_clock_value` now rejects any clock-shaped
+  token value.
 - **Byte determinism of figures.** `tests/test_figures.py` renders each
   figure twice into independent directories and asserts byte-identical PNGs.
+- **Byte determinism of the whole regeneration.**
+  `tests/test_manuscript_variables.py::test_regeneration_is_byte_identical`
+  runs `scripts/z_generate_manuscript_variables.py` twice, a real second
+  apart, into two independent copies of the package and compares every
+  emitted artifact — both JSON files, all nine rendered sections, and all
+  four figures — byte for byte, with no clock injected anywhere.
 - **End-to-end determinism.** `tests/test_mission.py` executes the mission
   twice and asserts identical result dictionaries and provenance hashes.
 
@@ -58,6 +69,10 @@ Regenerable output (git-ignored) lives under `output/`:
 - `output/figures/*.png` — the four ROGUE figures.
 
 Re-running `scripts/z_generate_manuscript_variables.py` regenerates all of
-these deterministically. Environment: Python {{PYTHON_VERSION}}, NumPy
+these byte-identically — asserted by `test_regeneration_is_byte_identical`,
+not merely asserted about. The scope of that identity is a fixed interpreter
+and NumPy build: `{{PYTHON_VERSION}}` and `{{NUMPY_VERSION}}` are the only
+environment-derived token values, so those two fields (and nothing else) can
+differ across environments. Environment: Python {{PYTHON_VERSION}}, NumPy
 {{NUMPY_VERSION}}, film `{{BOND_FILM}}`, codename `{{BOND_CODENAME}}`,
 package version {{BOND_VERSION}}.

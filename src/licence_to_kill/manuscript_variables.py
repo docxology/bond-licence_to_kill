@@ -4,7 +4,9 @@ Every numeric value that appears in the manuscript prose is injected from
 this module's :func:`generate_variables` — it is the single source of truth
 so metrics are never hand-authored. Identity tokens come from
 ``manuscript/config.yaml``; result tokens come from a fresh deterministic run
-of the six domain analyses.
+of the six domain analyses. Nothing here reads a clock — the token map is a
+pure function of the committed config and the canonical parameters, which is
+what makes regeneration byte-identical.
 
 The module imports only the pure domain core (not ``bond_api``), so it stays
 importable in a fallback environment.
@@ -12,7 +14,6 @@ importable in a fallback environment.
 
 from __future__ import annotations
 
-import datetime as _dt
 import platform
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
@@ -187,11 +188,25 @@ def order_endpoint(order: Sequence[str], index: int) -> str:
     return str(order[index])
 
 
-def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
+def generate_variables() -> dict[str, str]:
     """Compute the full {{TOKEN}} → value map, deterministically.
 
-    ``now`` is injectable for fully deterministic tests; when omitted the
-    current UTC timestamp is used (runtime diagnostic only).
+    No wall-clock value is emitted. A ``GENERATION_TIMESTAMP`` token used to
+    be part of this mapping and was persisted into
+    ``output/data/manuscript_variables.json``, which made the package's own
+    "no wall-clock in persisted outputs / reproducible byte-for-byte" claim
+    false: two runs a second apart produced different bytes. The old test
+    injected a fixed ``now`` and so could never see it. Determinism is worth
+    more here than recording when the artifacts were last built, and the
+    mission provenance already carries a sha256 ``input_hash`` that makes an
+    outcome auditable.
+
+    ``PYTHON_VERSION`` and ``NUMPY_VERSION`` are the two remaining
+    environment-derived values, so byte-identity holds for a fixed
+    interpreter and NumPy build and differs only in those two fields across
+    environments — the scope the reproducibility section states in words and
+    ``tests/test_manuscript_variables.py::test_regeneration_is_byte_identical``
+    asserts by regenerating twice and comparing bytes.
     """
     cfg = load_mission_config()
     paper = cfg.get("paper", {})
@@ -211,8 +226,6 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
     network = OperationNetwork(logistics_params["legs"])
     direct_risk = direct_leg_risk(network, logistics.origin, logistics.destination)
     reduction = risk_reduction(direct_risk, route.cumulative_risk)
-
-    stamp = (now or _dt.datetime.now(_dt.timezone.utc)).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     return {
         "BOND_TITLE": str(paper.get("title", "")),
@@ -336,7 +349,6 @@ def generate_variables(now: _dt.datetime | None = None) -> dict[str, str]:
         "SEED": str(laundering_params["seed"]),
         "PYTHON_VERSION": platform.python_version(),
         "NUMPY_VERSION": np.__version__,
-        "GENERATION_TIMESTAMP": stamp,
     }
 
 

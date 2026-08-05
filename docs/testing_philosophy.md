@@ -33,10 +33,16 @@ auditable. Four independent proofs run in the suite:
 - **End-to-end mission determinism.** `test_mission.py` executes the full
   mission twice and asserts equal result dictionaries and equal provenance
   hashes.
-- **Token stability under a moving clock.** `test_manuscript_variables.py`
-  asserts `GENERATION_TIMESTAMP` changes with an injected `now` while every
-  analytic token stays identical — the documented single exception to byte
-  reproducibility, pinned rather than hand-waved.
+- **Whole-regeneration byte identity.**
+  `test_manuscript_variables.py::test_regeneration_is_byte_identical` runs
+  the production generator script twice, a real second apart, into two copies
+  of the package and compares every emitted artifact byte for byte. Its
+  predecessor injected a fixed `now` and asserted the timestamp moved with
+  it — a test that froze the only varying input and so certified a false
+  claim: `GENERATION_TIMESTAMP` was persisted into
+  `output/data/manuscript_variables.json` and made every rerun differ. The
+  clock is gone, the exception with it, and
+  `test_no_token_carries_a_wall_clock_value` keeps it out.
 
 ## What each suite actually proves
 
@@ -88,9 +94,10 @@ hope:
    `manuscript/[0-9]*.md` must exist in `generate_variables()`. Catches
    typos and deleted tokens.
 2. **Every generated token is cited.** A token nobody references is dead
-   weight that will silently drift out of correctness;
-   `GENERATION_TIMESTAMP` is the one documented exception. This gate found
-   two orphaned tokens the day it was added.
+   weight that will silently drift out of correctness. The exception list is
+   now empty — `GENERATION_TIMESTAMP` was its only entry, and removing the
+   wall clock removed it. This gate found two orphaned tokens the day it was
+   added.
 3. **Every declared parameter is bound end to end.** For each canonical
    parameter the test asserts the token carries the exact canonical value
    *and* that at least one numbered section cites the token. This catches

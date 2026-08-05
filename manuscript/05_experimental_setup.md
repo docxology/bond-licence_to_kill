@@ -104,7 +104,11 @@ every value is an injected token read from the same functions.
 - Rendered variable map written to `output/data/manuscript_variables.json`;
   canonical mission results to `output/data/mission_results.json`.
 
-> **On the timestamp:** `GENERATION_TIMESTAMP` is a wall-clock diagnostic and
-> is the *only* token that varies between runs; every analytic token above is
-> identical across reruns. This is the documented exception that keeps the
-> rest of the output byte-reproducible.
+> **On the clock:** no token carries one. An earlier `GENERATION_TIMESTAMP`
+> wall-clock diagnostic was written into the variable map and made every
+> regeneration produce different bytes; it was removed rather than excused,
+> because a documented exception is still a false byte-for-byte claim. The
+> only values here that are not fixed by the committed inputs are
+> `PYTHON_VERSION` ({{PYTHON_VERSION}}) and `NUMPY_VERSION`
+> ({{NUMPY_VERSION}}), which fix the scope of the reproducibility claim to a
+> given interpreter and NumPy build.

@@ -33,8 +33,12 @@ them by the test suite. A parameter cannot change in one place and quietly
 survive in another.
 
 Because the entire pipeline runs on a fixed seed ({{SEED}}) with no random
-draws in the detectors and no wall-clock in persisted outputs, every figure
-and every table in this manuscript is reproducible byte-for-byte. As a
+draws in the detectors and no wall-clock anywhere in the persisted outputs,
+every figure and every table in this manuscript is reproducible byte-for-byte
+on a fixed interpreter and NumPy build — the two environment-derived token
+values, and the whole of the claim's scope. That is a tested property, not a
+comment: `test_regeneration_is_byte_identical` reruns the generator and
+compares every emitted file. As a
 BOND package, `licence_to_kill` exposes all of this through the frozen
 `bond-api` `MissionProvider` contract, so the fleet orchestrator can discover
 and drive it as a first-class citizen of the 27-film suite. The revoked

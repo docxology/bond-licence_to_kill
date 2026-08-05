@@ -37,6 +37,8 @@ adapter (`mission.py`).
 - No silent failure paths: never wrap a computation in a bare `except` that
   substitutes a default, and never write a guard no input can reach.
 - Deterministic: fixed seed, no random draws in detectors, no wall-clock in
-  persisted outputs.
+  persisted outputs — no exceptions, not even a "diagnostic" one. Regeneration
+  must stay byte-identical
+  (`tests/test_manuscript_variables.py::test_regeneration_is_byte_identical`).
 - Every public function has type hints and a docstring; `ruff` and `mypy`
   are clean on this tree.

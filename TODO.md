@@ -6,11 +6,12 @@
 operations logistics, surveillance) behind the frozen `bond-api`
 `MissionProvider` protocol, with a token-driven manuscript and a zero-mock
 test suite. Measured on this tree on **2026-08-05** (Python 3.14.6, working
-tree clean at `8386501`): **191 tests passed, 0 failed, 0 skipped**, and
-**100.00 % line + branch coverage** on `src/` — all nine modules at 100 %
-(`ruff check`, `ruff format --check`, and `mypy src/ scripts/` also clean;
-`z_generate_manuscript_variables.py` emits 108 tokens, 4 figures, 9 rendered
-sections). Re-measure rather than trust that line: it records one run, not a
+tree clean at `f67f90d` plus the wall-clock removal): **192 tests passed, 0
+failed, 0 skipped**, and **100.00 % line + branch coverage** on `src/` — all
+nine modules at 100 % (`ruff check`, `ruff format --check`, and
+`mypy src/ scripts/` also clean; `z_generate_manuscript_variables.py` emits
+107 tokens, 4 figures, 9 rendered sections, and two consecutive runs produce
+byte-identical output). Re-measure rather than trust that line: it records one run, not a
 standing guarantee. The standing guarantee is `--cov-fail-under=90`.
 
 This file is forward-only. Completed work is not logged here — `git log` is
@@ -297,15 +298,16 @@ figure.
 ## Verification
 
 Run from the package root (`projects/working/bond/licence_to_kill`). All
-five must be clean; the first is the gate.
+six must be clean; the first is the gate.
 
 | Command | Expected |
 |---|---|
-| `uv run pytest tests/ --cov=src --cov-fail-under=90` | all tests pass; total coverage ≥ 90 % line **and** branch on `src/` (measured 191 passed / 100.00 % on 2026-08-05) |
+| `uv run pytest tests/ --cov=src --cov-fail-under=90` | all tests pass; total coverage ≥ 90 % line **and** branch on `src/` (measured 192 passed / 100.00 % on 2026-08-05) |
 | `uv run ruff check src/ scripts/ tests/` | `All checks passed!` |
 | `uv run ruff format --check src/ scripts/ tests/` | `39 files already formatted` |
 | `uv run mypy src/ scripts/` | `Success: no issues found in 20 source files` |
-| `uv run python scripts/z_generate_manuscript_variables.py` | writes `output/data/manuscript_variables.json` (108 tokens), `output/data/mission_results.json`, 4 figures, and 9 rendered sections under `output/manuscript/` |
+| `uv run python scripts/z_generate_manuscript_variables.py` | writes `output/data/manuscript_variables.json` (107 tokens), `output/data/mission_results.json`, 4 figures, and 9 rendered sections under `output/manuscript/` |
+| the same command twice with `sleep 1` between, comparing `find output -type f \| sort \| xargs cat \| md5` | identical hashes — the byte-for-byte claim the manuscript makes. `tests/test_manuscript_variables.py::test_regeneration_is_byte_identical` runs this in-suite; the shell form is the independent check |
 
 Install first if the environment is cold: `uv sync --extra dev` (a bare
 `uv sync` prunes pytest, and `uv run pytest` then silently resolves a

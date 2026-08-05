@@ -7,8 +7,13 @@ by :func:`generate_variables` — the "never hand-author metrics" guarantee.
 
 from __future__ import annotations
 
-import datetime as dt
+import hashlib
 import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
 
 import pytest
 
@@ -45,7 +50,7 @@ _TOKEN_RE = re.compile(r"\{\{([A-Z_][A-Z0-9_]*)\}\}")
 
 
 def test_generate_variables_contains_expected_tokens():
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, 12, 0, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     for key in (
         "BOND_FILM",
         "BOND_CODENAME",
@@ -58,13 +63,30 @@ def test_generate_variables_contains_expected_tokens():
         "ROGUE_OPTIMAL_VALUE",
         "ROGUE_FIRST_ACTION",
         "PYTHON_VERSION",
-        "GENERATION_TIMESTAMP",
     ):
         assert key in tokens and tokens[key] != ""
 
 
+def test_no_token_carries_a_wall_clock_value():
+    """No emitted token may be a clock reading.
+
+    The regression this pins: ``GENERATION_TIMESTAMP`` was rendered into
+    ``output/data/manuscript_variables.json`` from ``datetime.now()``, so
+    every regeneration produced different bytes while the manuscript claimed
+    byte-for-byte reproducibility. Two separate wall-clock formats are
+    matched (``YYYY-MM-DD`` and ``HH:MM:SS``) so a reformatted stamp cannot
+    creep back in under a new name.
+    """
+    tokens = generate_variables()
+    clockish = re.compile(r"\d{4}-\d{2}-\d{2}|\d{2}:\d{2}:\d{2}")
+    offenders = sorted(k for k, v in tokens.items() if clockish.search(v))
+    assert offenders == [], f"wall-clock-shaped token values persisted: {offenders}"
+    source = (project_root() / "src" / "licence_to_kill" / "manuscript_variables.py").read_text(encoding="utf-8")
+    assert "datetime" not in source, "the token generator must not import or call a clock"
+
+
 def test_generate_variables_values_match_domain():
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4))
+    tokens = generate_variables()
     assert tokens["BOND_FILM"] == "licence_to_kill"
     assert tokens["BOND_CODENAME"] == "ROGUE"
     assert tokens["LAUNDERING_NODES"] == "22"
@@ -73,15 +95,17 @@ def test_generate_variables_values_match_domain():
     assert float(tokens["INTEGRATION_SCORE"]) == pytest.approx(0.6526, abs=0.01)
 
 
-def test_generate_variables_deterministic_under_fixed_now():
-    now = dt.datetime(2026, 8, 4, 9, 30, tzinfo=dt.timezone.utc)
-    assert generate_variables(now=now) == generate_variables(now=now)
+def test_generate_variables_is_deterministic_across_a_moving_clock():
+    """Two calls with a real second of wall clock between them must agree.
 
-
-def test_timestamp_changes_with_now():
-    a = generate_variables(now=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc))
-    b = generate_variables(now=dt.datetime(2026, 6, 1, tzinfo=dt.timezone.utc))
-    assert a["GENERATION_TIMESTAMP"] != b["GENERATION_TIMESTAMP"]
+    Deliberately *not* injecting a fixed ``now``: the injected-clock test
+    this replaces could not observe the defect it was supposed to guard,
+    because it froze the only thing that varied.
+    """
+    a = generate_variables()
+    time.sleep(1.1)
+    b = generate_variables()
+    assert a == b
 
 
 def test_load_mission_config_reads_title():
@@ -102,7 +126,7 @@ def test_substitute_replaces_known_and_leaves_unknown():
 
 def test_all_manuscript_tokens_are_generated():
     """Live gate: every {{TOKEN}} in numbered prose is produced by generate_variables."""
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     manuscript = project_root() / "manuscript"
     used: set[str] = set()
     for section in sorted(manuscript.glob("[0-9]*.md")):
@@ -112,7 +136,7 @@ def test_all_manuscript_tokens_are_generated():
 
 
 def test_domain_extension_tokens():
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     # finance
     assert tokens["FIN_STREET_PURE_GRAM"] == "30"
     assert tokens["FIN_CASH_MASS_KG"] == "50.0"
@@ -171,7 +195,7 @@ def test_declared_parameter_reaches_prose_as_a_token(token):
     directly, silently severing it from source. Deleting the token reference
     from every section fails this test.
     """
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     assert tokens[token] == _PARAMETER_BINDINGS[token](), f"{token} drifted from its canonical source"
     placeholder = "{{" + token + "}}"
     citing = [name for name, text in _numbered_sections().items() if placeholder in text]
@@ -180,7 +204,7 @@ def test_declared_parameter_reaches_prose_as_a_token(token):
 
 def test_no_section_leaves_an_unresolved_placeholder():
     """After substitution, no ``{{...}}`` may survive in any numbered section."""
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     for name, text in _numbered_sections().items():
         rendered = substitute(text, tokens)
         assert _TOKEN_RE.search(rendered) is None, f"{name} has an unresolved token after substitution"
@@ -237,7 +261,7 @@ def test_direct_baseline_is_not_computed_by_shortest_path():
 
 
 def test_direct_risk_token_is_the_canonical_direct_leg():
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     params = canonical_logistics_params()
     network = OperationNetwork(params["legs"])
     expected = direct_leg_risk(network, str(params["origin"]), str(params["destination"]))
@@ -284,7 +308,7 @@ def test_empty_surveillance_run_reaches_the_none_labels():
 
 def test_rogue_peak_alert_token_reports_the_terminal_escalation():
     """The token must carry the alert the closing action leaves behind."""
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
+    tokens = generate_variables()
     report = solve_optimal_policy(canonical_rogue_params()["model"])
     assert tokens["ROGUE_PEAK_ALERT"] == f"{report.peak_alert:.1f}"
     assert tokens["ROGUE_TERMINAL_ALERT"] == f"{report.terminal_alert:.1f}"
@@ -294,11 +318,69 @@ def test_rogue_peak_alert_token_reports_the_terminal_escalation():
 def test_every_generated_token_is_used_somewhere():
     """A token nobody cites is dead weight that will silently rot.
 
-    ``GENERATION_TIMESTAMP`` and the identity tokens consumed by the render
-    header are the documented exceptions.
+    There is no longer an exception list: ``GENERATION_TIMESTAMP`` was the
+    only entry, and removing the wall clock removed it.
     """
-    tokens = generate_variables(now=dt.datetime(2026, 8, 4, tzinfo=dt.timezone.utc))
-    allowed_unused = {"GENERATION_TIMESTAMP"}
+    tokens = generate_variables()
     corpus = "".join(_numbered_sections().values())
-    unused = sorted(k for k in tokens if k not in allowed_unused and "{{" + k + "}}" not in corpus)
+    unused = sorted(k for k in tokens if "{{" + k + "}}" not in corpus)
     assert unused == [], f"generated but never cited: {unused}"
+
+
+def _digest_tree(root: Path) -> dict[str, str]:
+    """sha256 of every persisted artifact under ``root``, keyed by relative path."""
+    return {
+        str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def test_regeneration_is_byte_identical(tmp_path):
+    """The claim, asserted rather than asserted-about.
+
+    Runs the *production* entry point — ``scripts/z_generate_manuscript_variables.py``
+    — twice, a real second apart, into two independent copies of the package,
+    then compares every emitted artifact byte for byte: the variables JSON,
+    the mission results JSON, the nine rendered sections, and the four PNGs.
+    No clock is injected anywhere, which is exactly why this test can fail
+    and the previous fixed-``now`` test could not: it failed on the variables
+    JSON while ``GENERATION_TIMESTAMP`` was live.
+
+    Scope: a fixed interpreter and NumPy build. ``PYTHON_VERSION`` and
+    ``NUMPY_VERSION`` are the only environment-derived tokens, and this test
+    holds them fixed by running both passes on ``sys.executable``.
+    """
+    source_root = project_root()
+    digests: list[dict[str, str]] = []
+    for run in ("first", "second"):
+        work = tmp_path / run
+        shutil.copytree(
+            source_root,
+            work,
+            ignore=shutil.ignore_patterns(
+                ".git", ".venv", "output", "*.egg-info", "__pycache__", ".pytest_cache", ".mypy_cache"
+            ),
+        )
+        result = subprocess.run(
+            [sys.executable, str(work / "scripts" / "z_generate_manuscript_variables.py")],
+            cwd=work,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        assert result.returncode == 0, result.stderr
+        digests.append(_digest_tree(work / "output"))
+        if run == "first":
+            time.sleep(1.1)
+
+    emitted = sorted(digests[0])
+    # Guard against a vacuous pass: the comparison must actually see the
+    # artifacts the reproducibility claim covers.
+    assert any(name.endswith("manuscript_variables.json") for name in emitted), emitted
+    assert sum(name.endswith(".md") for name in emitted) == 9, emitted
+    assert sum(name.endswith(".png") for name in emitted) == 4, emitted
+
+    differing = sorted(k for k in digests[0] if digests[0][k] != digests[1].get(k))
+    assert digests[0].keys() == digests[1].keys()
+    assert differing == [], f"regeneration changed these artifacts: {differing}"

@@ -78,8 +78,15 @@ change one without the other. **Change the Python first, then the YAML.**
 ## Rule 7 — Determinism
 
 Fixed seed (0), no random draws in the detectors, no wall-clock in persisted
-outputs. `GENERATION_TIMESTAMP` is the single documented exception. Figures
-must stay byte-reproducible (`tests/test_figures.py`).
+outputs — **no exceptions**. There used to be one (`GENERATION_TIMESTAMP`),
+and it silently falsified the manuscript's byte-for-byte claim while a
+fixed-`now` test declared it safe. Do not reintroduce a clock reading under
+any name; `test_no_token_carries_a_wall_clock_value` rejects clock-shaped
+token values and any `datetime` use in `manuscript_variables.py`. Figures
+must stay byte-reproducible (`tests/test_figures.py`), and the whole
+regeneration must stay byte-identical
+(`test_regeneration_is_byte_identical`), which reruns the real generator
+script twice and compares every artifact.
 
 ## Rule 8 — No silent failure paths, no unreachable guards
 
