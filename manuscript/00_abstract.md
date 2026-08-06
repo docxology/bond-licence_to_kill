@@ -30,9 +30,9 @@ The remaining three carry the campaign from the ledger into the world:
 On the canonical seeded network (codename {{BOND_CODENAME}}, seed {{SEED}})
 the analysis detects {{LAUNDERING_CYCLES}} money-returning cycle(s) and
 {{LAUNDERING_FUNNELS}} funnels across {{LAUNDERING_NODES}} nodes and
-{{LAUNDERING_EDGES}} directed edges, with {{LAUNDERING_PATHS}} representative
-layering chains enumerated — a composite layering score of {{LAYERING_SCORE}}
-and an integration score of {{INTEGRATION_SCORE}}. The Wavekrest-class
+and {{LAUNDERING_EDGES}} directed edges, with {{LAUNDERING_PATHS}} layering
+chains (the exact count) enumerated — a composite layering score of {{LAYERING_SCORE}}
+and an integration score of {{INTEGRATION_SCORE}}.
 profile resolves a gross tonnage of {{VESSEL_GROSS_TONNAGE}} and flags
 {{VESSEL_ANOMALIES}} forensic anomalies (score {{VESSEL_ANOMALY_SCORE}}).
 The rogue-00 dynamic program over {{ROGUE_HORIZON}} steps returns an optimal

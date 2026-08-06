@@ -51,12 +51,22 @@ modelled objects*, and the objects are idealised.
 - The composite laundering score's component weights
   ({{LAYERING_WEIGHT_CYCLE}} / {{LAYERING_WEIGHT_DEPTH}} /
   {{LAYERING_WEIGHT_FUNNEL}}) are heuristics, not estimates from labelled
-  data. The score is useful for ranking structures against each other, not
-  as an absolute quantity.
-- `LAUNDERING_PATHS` reports the enumeration cap
-  ({{LAUNDERING_MAX_PATHS}}), which the canonical network saturates. It is a
-  lower bound on the true chain count, and the depth component is therefore
-  computed over a truncated sample.
+  data. The score is not a calibrated absolute quantity, and its *ranking* of
+  two structures is not invariant to the weights either: over a coarse
+  sampling of the weight simplex ({{LAYERING_RANKING_SAMPLES}} weight
+  triples) the ordering of two deliberately distinct reference structures
+  matches the canonical-weight ordering on only
+  {{LAYERING_RANKING_STABILITY}} of the samples. Measured, not assumed — the
+  number is a token from `layering_ranking_stability()` in
+  `manuscript_variables.py`, and the non-invariance is a pinned test
+  (`test_layering_score_ranking_is_weight_dependent`). Treat the composite
+  score as a screening heuristic for gross differences, never as a stable
+  single-number ordering.
+- `LAUNDERING_PATHS` is the exact source→sink chain count for the canonical
+  network, not a truncated sample: the enumeration cap
+  ({{LAUNDERING_MAX_PATHS}}) sits strictly above the true count and the depth
+  component is computed over the full chain population (see
+  `test_canonical_layering_path_count_is_exact_not_saturated`).
 - The vessel physics ignore sea state, hull fouling, and auxiliary loads;
   endurance is a flat-water, single-speed idealisation.
 - **The rogue model's alert dimension is an integer lattice**, so the

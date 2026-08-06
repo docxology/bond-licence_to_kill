@@ -5,9 +5,10 @@
 `licence_to_kill` is PROJECT BOND's deterministic film package for *Licence
 to Kill* (1989), mission codename **ROGUE**. It demonstrates a complete,
 gate-verified film package: a pure domain core (money-laundering graph,
-vessel forensics, rogue-00 risk DP), a frozen `bond-api` `MissionProvider`
+vessel forensics, rogue-00 risk DP, narcotics finance, operations logistics,
+surveillance), a frozen `bond-api` `MissionProvider`
 adapter, token-driven manuscript, deterministic figures, and a zero-mock
-test suite at ~99 % line + branch coverage.
+test suite run against the coverage gate recorded in `TODO.md`.
 
 ## Local-only
 

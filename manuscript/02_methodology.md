@@ -38,7 +38,8 @@ distribution (`TransactionGraph.propagate_dirty`). From it we derive the
 per-sink dirty fraction
 $d_i = \text{dirty}_i / \text{in\_amount}_i$, the integration score
 $1 - \bar{d}$ (how diluted the placed value has become), and the Shannon
-entropy of the dirty distribution across sinks (how dispersed it is).
+entropy of the dirty distribution across sinks (how dispersed it is)
+[@shannon1948].
 
 **Composite layering score.** Three normalised components — cycles,
 layering-chain depth, and funnel imbalance — are blended

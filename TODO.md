@@ -317,3 +317,81 @@ Sandbox note: `uv` cannot initialise its cache under the default sandbox
 (`Failed to initialize cache at /Users/4d/.cache/uv`). Re-run the same
 command with the sandbox disabled if you hit that; it is not a package
 failure.
+
+---
+
+## Round-2 (2026-08-06)
+
+Deep-improvement pass on a clean tree at `75fc750`. Baseline: 192 passed / 0
+failed / 0 skipped, 100.00 % line + branch coverage; `ruff check`, `ruff
+format --check`, and `mypy src/ scripts/` clean. Closed four open-work items
+(C2, V1, V2, V3) and both documentation items (D1, D2):
+
+- **C2 (closed) — `LAUNDERING_PATHS` reported the enumeration cap, not the
+  chain count.** The canonical network saturated `max_paths = 200`, so the
+  reported figure was a lower bound and the depth component came from a
+  truncated, order-biased sample. Raised the cap to `DEFAULT_MAX_PATHS = 1000`
+  (strictly above the true count, 720) in `laundering_graph.py` and mirrored
+  it in `manuscript/config.yaml`; `LAUNDERING_PATHS` is now the exact count and
+  the depth component is computed over the full chain population. Test evidence:
+  `test_canonical_layering_path_count_is_exact_not_saturated` (pins the exact
+  720 and the non-saturating cap; still limited by the halved cap, proving the
+  bound binds). `LAUNDERING_PATHS` 200→720; `LAYERING_SCORE` 0.515→0.513. The
+  "read as at least this many" caveats in `03_results.md` and
+  `07_scope_and_related_work.md` are removed.
+
+- **V1 (closed) — the direct-leg baseline binding was lexical, not
+  behavioural.** `generate_variables()` and `_run_mission_analyses()` now accept
+  an injectable `logistics_network`;
+  `test_direct_baseline_binds_behaviourally_through_generate_variables` injects
+  a network on which the direct `IC→FL` leg (risk 0.500) and the risk-optimal
+  two-hop path (0.19) differ, and asserts `LOG_DIRECT_RISK` carries the direct
+  leg's value through the production entry point. The old source-text guard
+  `test_direct_baseline_is_not_computed_by_shortest_path` (defeatable by an
+  alias import) is deleted.
+
+- **V2 (closed) — the layering-score ranking overclaim is now measured and
+  honest.** The composite score's induced order of two structurally distinct
+  networks is *not* invariant to the weight blend: across the 21-point weight
+  simplex both orderings occur and the canonical-weight ordering is reproduced
+  on only 38 % of samples. The manuscript's "useful for ranking structures
+  against each other" claim is weakened to that measured share, carried as
+  tokens `LAYERING_RANKING_STABILITY` / `LAYERING_RANKING_SAMPLES` from a new
+  `layering_ranking_stability()` helper in `manuscript_variables.py`. Test
+  evidence: `test_layering_score_ranking_is_weight_dependent` (both orderings
+  occur; share strictly in (0,1)) and
+  `test_layering_ranking_tokens_are_live_and_consistent`.
+
+- **V3 (closed) — the frozen-registry test now expresses the additive-only
+  rule.** `test_gadget_registry_register` asserts the eight frozen entries as a
+  required *subset* (`_FROZEN_GADGET_NAMES <= gadgets`), so removing one fails
+  the suite while adding a ninth stays legal. The old exact-set-equality test
+  could not distinguish a removal from an addition.
+
+- **D1 (closed) — `pyproject.toml` described a three-domain package.** The
+  header comment and `description` now name all six domain cores; `narcotics`
+  appears in `pyproject.toml` and (after `uv sync`) in the rebuilt
+  `src/licence_to_kill.egg-info/PKG-INFO`.
+
+- **D2 (closed) — `STANDALONE.md` named three domains and a stale coverage
+  figure.** The opening description names all six domains and drops the
+  "~99 %" number, pointing at this file's dated measurement instead.
+
+Manuscript deepened: added a headline-results overview table (`3.0`) to
+`03_results.md` built from live tokens (so it cannot disagree with the
+analysis), corrected the abstract and results for the exact chain count, added
+an honest scope statement for the new ranking-stability measurement in
+`07_scope_and_related_work.md`, and cited Shannon 1948 (`@shannon1948`) at the
+mixing-entropy definition in `02_methodology.md`.
+
+Final gates on this tree: **195 passed / 0 failed / 0 skipped, 100.00 % line +
+branch coverage**; `ruff check` and `ruff format --check` clean; `mypy
+src/ scripts/` clean; the manuscript regenerates 109 tokens, 4 figures and 9
+sections byte-identically across two runs (hash `0d25044d…`).
+
+Left for a future round (deliberately not closed this round): **C1** — the
+rogue-alert integer lattice truncates the canonical stealth visibility to a
+zero alert increase; changing it (half-integer lattice or an explicitly
+integral ladder) alters the optimal policy and every pinned `ROGUE_*` token and
+is a standalone, deliberate decision. The extension items **E1–E5** remain as
+scoped future work; all are unchanged in behaviour this round.

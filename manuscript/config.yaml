@@ -94,7 +94,7 @@ mission:
     sinks: ["B1", "B2", "B3", "B4"]
     max_depth: 8
     max_cycles: 50
-    max_paths: 200
+    max_paths: 1000
     funnel_threshold: 1.5
   vessel:
     profile: "Wavekrest"

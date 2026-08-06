@@ -35,10 +35,12 @@ from licence_to_kill.surveillance import (
 from licence_to_kill.vessel_forensics import CARGO_DENSITY_CEILING, DISPLACEMENT_TOLERANCE
 
 from licence_to_kill.manuscript_variables import (
+    _RANKING_SIMPLEX,
     compromise_step_label,
     direct_leg_risk,
     generate_variables,
     last_escalation_action,
+    layering_ranking_stability,
     load_mission_config,
     order_endpoint,
     project_root,
@@ -231,6 +233,33 @@ def test_direct_leg_risk_reads_the_direct_leg_not_the_shortest_path():
     assert distance_minimal.cumulative_risk == pytest.approx(0.19)
 
 
+def test_direct_baseline_binds_behaviourally_through_generate_variables():
+    """V1: the token's direct-leg baseline is bound on the production entry point.
+
+    On the canonical network the direct leg happens to be the distance-minimal
+    path (both give risk 0.300), so no canonical value can discriminate the
+    ``direct_leg`` baseline from a ``shortest_path`` one. Injecting a network
+    on which they genuinely differ — a high-risk direct ``IC→FL`` leg beside a
+    low-risk two-hop ``IC→X→FL`` path — forces the difference into the open:
+    the token must carry the *direct leg's* risk, not the route's. This is the
+    behavioural binding that replaces the old lexical ``"shortest_path" not in
+    source`` guard (which an alias import could defeat).
+    """
+    legs = (
+        MissionLeg("IC", "FL", 100.0, 1.0, 0.50),
+        MissionLeg("IC", "X", 10.0, 1.0, 0.10),
+        MissionLeg("X", "FL", 10.0, 1.0, 0.10),
+    )
+    network = OperationNetwork(legs)
+    tokens = generate_variables(logistics_network=network)
+    # the risk-optimal route is the two-hop path (lower cumulative risk)
+    assert tokens["LOG_ROUTE"] == "IC → X → FL"
+    assert float(tokens["LOG_ROUTE_RISK"]) == pytest.approx(0.19, abs=1e-3)
+    # the baseline token is the DIRECT leg's own risk — a different number
+    assert tokens["LOG_DIRECT_RISK"] == "0.500"
+    assert float(tokens["LOG_DIRECT_RISK"]) != float(tokens["LOG_ROUTE_RISK"])
+
+
 def test_direct_leg_risk_raises_when_there_is_no_direct_leg():
     """No direct leg is a loud failure, never a substituted default."""
     network = OperationNetwork(
@@ -242,22 +271,6 @@ def test_direct_leg_risk_raises_when_there_is_no_direct_leg():
     assert direct_leg(network, "A", "B") is None
     with pytest.raises(ValueError, match="no direct leg"):
         direct_leg_risk(network, "A", "B")
-
-
-def test_direct_baseline_is_not_computed_by_shortest_path():
-    """Lexical guard on the one binding the canonical data cannot discriminate.
-
-    On the canonical network the direct leg *is* the distance-minimal path,
-    so both implementations produce {{LOG_DIRECT_RISK}} = 0.300 and no
-    value-level assertion can tell them apart. The discriminating cases live
-    in ``test_direct_leg_risk_reads_the_direct_leg_not_the_shortest_path``
-    (semantics) and ``test_figures.py::test_operations_figure_requires_a_real_direct_leg``
-    (behaviour); this pins that the token generator does not quietly go back
-    to routing for its baseline.
-    """
-    source = (project_root() / "src" / "licence_to_kill" / "manuscript_variables.py").read_text(encoding="utf-8")
-    assert "shortest_path" not in source, "the direct-leg baseline must come from direct_leg, not from routing"
-    assert "direct_leg" in source
 
 
 def test_direct_risk_token_is_the_canonical_direct_leg():
@@ -304,6 +317,45 @@ def test_empty_surveillance_run_reaches_the_none_labels():
     assert order_endpoint(report.optimal_order, 0) == "none"
     assert order_endpoint(report.optimal_order, -1) == "none"
     assert compromise_step_label(report.compromise_step) == "never"
+
+
+def test_layering_score_ranking_is_weight_dependent():
+    """V2 negative control: the composite score's ranking is not weight-invariant.
+
+    The composite score blends three hand-chosen weights, so a single-scalar
+    ordering of two structures is only meaningful if it survives the choice of
+    weights. It does not: across the coarse simplex sampling both orderings of
+    the two reference structures occur (True and False both appear), and the
+    measured share of weight vectors that agree with the canonical-weight
+    ordering is strictly between 0 and 1 — the score is neither a stable
+    ranking device nor trivially degenerate. This pins the manuscript's honest
+    claim: previously it asserted the score was ``useful for ranking`` with no
+    test able to falsify it.
+    """
+    from licence_to_kill.manuscript_variables import (
+        _RANK_SINKS,
+        _RANK_SOURCES,
+        _blend,
+        _component_vector,
+        _cycle_heavy_probe,
+        _deep_funnel_probe,
+    )
+
+    a = _component_vector(_cycle_heavy_probe(), _RANK_SOURCES, _RANK_SINKS)
+    b = _component_vector(_deep_funnel_probe(), _RANK_SOURCES, _RANK_SINKS)
+    orderings = {_blend(a, w) > _blend(b, w) for w in _RANKING_SIMPLEX}
+    assert orderings == {True, False}
+    share = layering_ranking_stability()
+    assert 0.0 < share < 1.0
+
+
+def test_layering_ranking_tokens_are_live_and_consistent():
+    """The manuscript's ranking-stability tokens carry the real measurement."""
+    tokens = generate_variables()
+    share = layering_ranking_stability()
+    assert tokens["LAYERING_RANKING_SAMPLES"] == str(len(_RANKING_SIMPLEX))
+    assert tokens["LAYERING_RANKING_STABILITY"] == f"{share:.0%}"
+    assert 0.0 < share < 1.0
 
 
 def test_rogue_peak_alert_token_reports_the_terminal_escalation():

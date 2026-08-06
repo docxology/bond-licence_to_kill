@@ -137,9 +137,14 @@ def test_run_rogue_mission_convenience():
     assert debrief.outcome.success is True
 
 
-def test_gadget_registry_register():
-    gadgets = set(GADGET_REGISTRY.gadgets_for("licence_to_kill"))
-    assert gadgets == {
+#: The eight registry entries that must never be removed (V3). Asserted as a
+#: required *subset* of whatever the live registry holds, so removing one of
+#: these fails the suite while *adding* a ninth gadget stays legal — the rule
+#: AGENTS.md and README state ("frozen, additive-only") but the old exact-set
+#: equality test could not express: it treated a removal and an addition
+#: identically, both requiring a manual edit of the literal.
+_FROZEN_GADGET_NAMES = frozenset(
+    {
         "laundering_analyzer",
         "laundering_network",
         "vessel_forensics",
@@ -149,6 +154,15 @@ def test_gadget_registry_register():
         "surveillance_model",
         "network_manifest",
     }
+)
+
+
+def test_gadget_registry_register():
+    gadgets = set(GADGET_REGISTRY.gadgets_for("licence_to_kill"))
+    # removal of a frozen gadget fails; additions are permitted
+    assert _FROZEN_GADGET_NAMES <= gadgets, (
+        f"registry lost a frozen gadget: {sorted(_FROZEN_GADGET_NAMES - gadgets)} (GADGET_REGISTRY is additive-only)"
+    )
     manifest = GADGET_REGISTRY.lookup("licence_to_kill", "network_manifest")
     assert manifest["seed"] == 0
     assert GADGET_REGISTRY.contains("licence_to_kill", "surveillance_model")

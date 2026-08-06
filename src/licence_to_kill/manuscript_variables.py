@@ -23,7 +23,9 @@ import yaml
 
 from licence_to_kill import CODENAME, FILM, __version__ as VERSION
 from licence_to_kill.laundering_graph import (
+    LAYERING_WEIGHTS,
     LaunderingReport,
+    Transaction,
     TransactionGraph,
     analyze_laundering,
     build_sanchez_network,
@@ -86,7 +88,9 @@ def load_mission_config(root: Path | None = None) -> dict[str, Any]:
         return cast("dict[str, Any]", yaml.safe_load(handle))
 
 
-def _run_mission_analyses() -> tuple[
+def _run_mission_analyses(
+    logistics_network: OperationNetwork | None = None,
+) -> tuple[
     TransactionGraph,
     LaunderingReport,
     VesselForensicReport,
@@ -100,6 +104,11 @@ def _run_mission_analyses() -> tuple[
     Every input comes from a ``canonical_*_params()`` single source, the same
     ones ``mission.py`` consumes, so a manuscript token can never disagree
     with the mission outcome it describes.
+
+    ``logistics_network`` is injectable for the behavioural direct-leg test: a
+    caller may substitute a network (e.g. one on which the direct leg and the
+    distance-minimal path differ) and the logistics report is built from it,
+    exactly as the canonical network is otherwise built from the params.
     """
     laundering_params = canonical_laundering_params()
     vessel_params = canonical_vessel_params()
@@ -121,7 +130,7 @@ def _run_mission_analyses() -> tuple[
     vessel = forensic_report(vessel_params["profile"], observed=vessel_params["observed"])
     rogue = solve_optimal_policy(rogue_params["model"])
     finance = analyze_narcotics_finance(**finance_params)
-    network = OperationNetwork(logistics_params["legs"])
+    network = logistics_network if logistics_network is not None else OperationNetwork(logistics_params["legs"])
     logistics = analyze_operations_logistics(
         network,
         str(logistics_params["origin"]),
@@ -188,8 +197,132 @@ def order_endpoint(order: Sequence[str], index: int) -> str:
     return str(order[index])
 
 
-def generate_variables() -> dict[str, str]:
+#: The two reference structures used to characterise the composite layering
+#: score's *ranking* behaviour (V2). One is cycle-heavy with shallow chains,
+#: the other deep-chain/funnel-heavy with almost no cycles — deliberately
+#: distinct. Neither pretends to be a real laundering network; both only ever
+#: measure how stably the score orders two networks across the weight simplex.
+_RANK_SOURCES: tuple[str, ...] = ("S1", "S2")
+_RANK_SINKS: tuple[str, ...] = ("B1", "B2")
+
+
+def _cycle_heavy_probe() -> TransactionGraph:
+    """Reference structure A: short money-returning cycles, few deep chains."""
+    g = TransactionGraph()
+    for i in range(3):
+        a, b, c = f"ca{i}", f"cb{i}", f"cc{i}"
+        g.add_transaction(Transaction(f"S{1 + (i % 2)}", a, 5.0))
+        g.add_transaction(Transaction(a, b, 5.0))
+        g.add_transaction(Transaction(b, c, 5.0))
+        g.add_transaction(Transaction(c, a, 5.0))
+        g.add_transaction(Transaction(b, f"B{1 + (i % 2)}", 5.0))
+    return g
+
+
+def _deep_funnel_probe() -> TransactionGraph:
+    """Reference structure B: deep chains and strong funnel imbalance, no cycles."""
+    g = TransactionGraph()
+    deep = ["S1", "a", "b", "c", "d", "e", "B1"]
+    for src, dst in zip(deep, deep[1:]):
+        g.add_transaction(Transaction(src, dst, 5.0))
+    g.add_transaction(Transaction("S1", "f", 5.0))
+    g.add_transaction(Transaction("f", "e", 5.0))
+    g.add_transaction(Transaction("S2", "g", 5.0))
+    g.add_transaction(Transaction("g", "e", 5.0))
+    g.add_transaction(Transaction("e", "B1", 5.0))
+    g.add_transaction(Transaction("e", "B2", 5.0))
+    g.add_transaction(Transaction("B2", "h", 5.0))
+    g.add_transaction(Transaction("B1", "h", 5.0))
+    return g
+
+
+#: Coarse 2-simplex sample of (cycle, depth, funnel) weight triples summing to
+#: 1 (step 0.2). Hard-coded as data so the stability measurement has no branch
+#: to miss in coverage; keeps the measurement reproducible.
+_RANKING_SIMPLEX: tuple[tuple[float, float, float], ...] = (
+    (0.0, 0.0, 1.0),
+    (0.0, 0.2, 0.8),
+    (0.0, 0.4, 0.6),
+    (0.0, 0.6, 0.4),
+    (0.0, 0.8, 0.2),
+    (0.0, 1.0, 0.0),
+    (0.2, 0.0, 0.8),
+    (0.2, 0.2, 0.6),
+    (0.2, 0.4, 0.4),
+    (0.2, 0.6, 0.2),
+    (0.2, 0.8, 0.0),
+    (0.4, 0.0, 0.6),
+    (0.4, 0.2, 0.4),
+    (0.4, 0.4, 0.2),
+    (0.4, 0.6, 0.0),
+    (0.6, 0.0, 0.4),
+    (0.6, 0.2, 0.2),
+    (0.6, 0.4, 0.0),
+    (0.8, 0.0, 0.2),
+    (0.8, 0.2, 0.0),
+    (1.0, 0.0, 0.0),
+)
+
+
+def _component_vector(
+    graph: TransactionGraph, sources: Sequence[str], sinks: Sequence[str]
+) -> tuple[float, float, float]:
+    """The (cycle, depth, funnel) component triple of one network's score."""
+    params = canonical_laundering_params()
+    report = analyze_laundering(
+        graph,
+        sources,
+        sinks,
+        max_depth=int(params["max_depth"]),
+        max_cycles=int(params["max_cycles"]),
+        max_paths=int(params["max_paths"]),
+        funnel_threshold=float(params["funnel_threshold"]),
+    )
+    c = report.layering_components
+    return (
+        float(c["cycle_component"]),
+        float(c["depth_component"]),
+        float(c["funnel_component"]),
+    )
+
+
+def _blend(components: tuple[float, float, float], weights: Sequence[float]) -> float:
+    return weights[0] * components[0] + weights[1] * components[1] + weights[2] * components[2]
+
+
+def layering_ranking_stability(
+    weights: tuple[float, float, float] = LAYERING_WEIGHTS,
+    simplex: Sequence[tuple[float, float, float]] = _RANKING_SIMPLEX,
+) -> float:
+    """Share of the weight simplex over which the composite score's ranking of
+    the two reference structures matches the ``weights`` ordering.
+
+    This is the honest, measured bound on the composite score's ranking
+    usefulness: the score blends three hand-chosen weights, and its induced
+    ordering of two distinct structures is not invariant to that choice. Over
+    the coarse simplex sampling here the ordering matches the canonical-weight
+    ordering on fewer than all samples — a value carried as a token in
+    ``manuscript/07`` so the claim stays connected to the measurement.
+    Deterministic and pure (both probes and the simplex are fixed), so the
+    token regenerates byte-identical.
+    """
+    components_a = _component_vector(_cycle_heavy_probe(), _RANK_SOURCES, _RANK_SINKS)
+    components_b = _component_vector(_deep_funnel_probe(), _RANK_SOURCES, _RANK_SINKS)
+    reference = _blend(components_a, weights) > _blend(components_b, weights)
+    matches = sum(1 for w in simplex if (_blend(components_a, w) > _blend(components_b, w)) == reference)
+    return matches / len(simplex)
+
+
+def generate_variables(logistics_network: OperationNetwork | None = None) -> dict[str, str]:
     """Compute the full {{TOKEN}} → value map, deterministically.
+
+    ``logistics_network`` lets a test substitute a network on which the direct
+    leg and the distance-minimal path genuinely differ, so the ``LOG_DIRECT_RISK``
+    baseline is bound behaviourally through the production entry point rather
+    than only through the isolated :func:`direct_leg_risk` helper. When
+    omitted (the default for every manuscript run and every other test) the
+    canonical logistics network is built from the params, byte-identical to
+    before.
 
     No wall-clock value is emitted. A ``GENERATION_TIMESTAMP`` token used to
     be part of this mapping and was persisted into
@@ -210,7 +343,9 @@ def generate_variables() -> dict[str, str]:
     """
     cfg = load_mission_config()
     paper = cfg.get("paper", {})
-    _graph, launder, vessel, rogue, finance, logistics, surveillance = _run_mission_analyses()
+    _graph, launder, vessel, rogue, finance, logistics, surveillance = _run_mission_analyses(
+        logistics_network=logistics_network
+    )
 
     laundering_params = canonical_laundering_params()
     vessel_params = canonical_vessel_params()
@@ -223,7 +358,9 @@ def generate_variables() -> dict[str, str]:
 
     route = logistics.route
     # The direct single leg — the baseline the manuscript compares against.
-    network = OperationNetwork(logistics_params["legs"])
+    # The SAME network that produced the route is read here, so the injected
+    # test network (where direct leg != distance-minimal path) binds both.
+    network = logistics_network if logistics_network is not None else OperationNetwork(logistics_params["legs"])
     direct_risk = direct_leg_risk(network, logistics.origin, logistics.destination)
     reduction = risk_reduction(direct_risk, route.cumulative_risk)
 
@@ -253,6 +390,9 @@ def generate_variables() -> dict[str, str]:
         "LAYERING_WEIGHT_CYCLE": f"{float(laundering_params['layering_weights'][0]):.1f}",
         "LAYERING_WEIGHT_DEPTH": f"{float(laundering_params['layering_weights'][1]):.1f}",
         "LAYERING_WEIGHT_FUNNEL": f"{float(laundering_params['layering_weights'][2]):.1f}",
+        # honest bound on the composite score's ranking usefulness (V2)
+        "LAYERING_RANKING_STABILITY": f"{layering_ranking_stability():.0%}",
+        "LAYERING_RANKING_SAMPLES": str(len(_RANKING_SIMPLEX)),
         # vessel
         "VESSEL_GROSS_TONNAGE": f"{vessel.gross_tonnage:.0f}",
         "VESSEL_HULL_VOLUME": f"{vessel.hull_volume:.0f}",

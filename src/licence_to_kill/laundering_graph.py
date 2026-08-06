@@ -52,6 +52,15 @@ DEFAULT_FUNNEL_THRESHOLD = 1.5
 #: three numbers that would drift the moment the blend is retuned.
 LAYERING_WEIGHTS: tuple[float, float, float] = (0.4, 0.3, 0.3)
 
+#: Default cap on source→sink path enumeration. Must sit strictly above the
+#: canonical network's true path count so the reported `LAUNDERING_PATHS`
+#: figure is the exact chain count, not a saturated cap. Raised from 200
+#: (which the canonical network saturated) to 1000 as the C2 fix; if the
+#: canonical graph is ever extended and its path count rises to this bound,
+#: `tests/test_canonical_params.py` (which asserts the enumeration is
+#: non-saturating) fails and forces a re-derivation.
+DEFAULT_MAX_PATHS = 1000
+
 #: Sink / integration sectors (terminal accounts where dirty value pools).
 INTEGRATION_SECTORS = ("bank",)
 
@@ -222,7 +231,7 @@ class TransactionGraph:
         sources: Iterable[str],
         sinks: Iterable[str],
         max_depth: int = 8,
-        max_paths: int = 200,
+        max_paths: int = DEFAULT_MAX_PATHS,
     ) -> tuple[tuple[str, ...], ...]:
         """Enumerate finite source→sink value paths (the layering chains)."""
         source_set = set(sources)
@@ -349,7 +358,7 @@ def analyze_laundering(
     sinks: Iterable[str],
     max_depth: int = 8,
     max_cycles: int = 50,
-    max_paths: int = 200,
+    max_paths: int = DEFAULT_MAX_PATHS,
     funnel_threshold: float = DEFAULT_FUNNEL_THRESHOLD,
 ) -> LaunderingReport:
     """Run the full layering + integration detection suite over ``graph``.
@@ -471,7 +480,7 @@ def canonical_laundering_params() -> dict[str, Any]:
         "sinks": ("B1", "B2", "B3", "B4"),
         "max_depth": 8,
         "max_cycles": 50,
-        "max_paths": 200,
+        "max_paths": DEFAULT_MAX_PATHS,
         "funnel_threshold": DEFAULT_FUNNEL_THRESHOLD,
         "layering_weights": LAYERING_WEIGHTS,
     }

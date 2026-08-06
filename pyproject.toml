@@ -1,8 +1,9 @@
 # licence_to_kill — Licence to Kill (1989) · mission codename ROGUE
 # PROJECT BOND film package. Implements the FROZEN bond-api MissionProvider
 # contract and a pure deterministic domain core for the Sanchez money-
-# laundering graph, Wavekrest-class vessel forensics, and the rogue-00
-# revoked-licence risk model.
+# laundering graph, Wavekrest-class vessel forensics, the rogue-00 revoked-
+# licence risk model, narcotics-finance economics, operations logistics, and
+# surveillance.
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -12,7 +13,7 @@ build-backend = "setuptools.build_meta"
 name = "licence_to_kill"
 version = "0.1.0"
 license = {text = "MIT"}
-description = "Licence to Kill: ROGUE — special-agent mission software (money-laundering graph, vessel forensics, rogue-00 risk model)"
+description = "Licence to Kill: ROGUE — special-agent mission software (money-laundering graph, vessel forensics, rogue-00 risk model, narcotics-finance economics, operations logistics, surveillance)"
 authors = [
     {name = "Daniel Ari Friedman", email = "daniel@activeinference.institute"}
 ]

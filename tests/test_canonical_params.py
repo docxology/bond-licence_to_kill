@@ -142,7 +142,11 @@ def test_declared_search_bounds_are_consumed_not_just_named():
         max_paths=int(params["max_paths"]) // 2,
         funnel_threshold=float(params["funnel_threshold"]),
     )
-    assert len(baseline.layering_paths) == int(params["max_paths"])
+    # ``max_paths`` is set strictly above the canonical network's true chain
+    # count (C2 fix), so the reported enumeration is the *exact* count, not a
+    # saturated cap. Halving the cap still saturates, which is what proves
+    # the bound genuinely binds rather than being decorative.
+    assert len(baseline.layering_paths) < int(params["max_paths"])
     assert len(tightened.layering_paths) == int(params["max_paths"]) // 2
 
     # A stricter funnel threshold cannot admit MORE funnels.

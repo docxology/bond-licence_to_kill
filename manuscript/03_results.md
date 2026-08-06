@@ -5,6 +5,21 @@ All results below are deterministic outputs of the canonical seeded run
 `src/licence_to_kill/manuscript_variables.py` — the plain numbers you read
 are injected tokens, not hand-typed values.
 
+## 3.0 Headline results at a glance
+
+| Domain | Key quantity | Value |
+|---|---|---|
+| Laundering | Composite layering score | {{LAYERING_SCORE}} |
+| Laundering | Integration score | {{INTEGRATION_SCORE}} |
+| Vessel | Forensic anomaly score | {{VESSEL_ANOMALY_SCORE}} |
+| Rogue | Optimal expected mission value | {{ROGUE_OPTIMAL_VALUE}} |
+| Finance | Courier-parcel cash mass | {{FIN_CASH_MASS_KG}} kg |
+| Logistics | Cumulative route interdiction risk | {{LOG_ROUTE_RISK}} vs {{LOG_DIRECT_RISK}} direct |
+| Surveillance | Probability of completing undetected | {{SURV_SUCCESS}} |
+
+Each row is developed in its own subsection below; the numbers are the same
+injected tokens, so the table cannot disagree with the analysis.
+
 ## 3.1 Layering and integration in the Sanchez network
 
 The canonical network built by `build_sanchez_network(seed=0)` contains
@@ -16,10 +31,10 @@ detectors identify:
   that returns cash through the shell grid;
 - **{{LAUNDERING_FUNNELS}}** funnels (collectors that concentrate the flow and
   distributors that scatter it);
-- **{{LAUNDERING_PATHS}}** representative placement→integration chains,
-  whose mean depth drives the depth component. This is the enumeration cap
-  ({{LAUNDERING_MAX_PATHS}}), not the true chain count: the canonical network
-  saturates it, so the figure should be read as "at least this many".
+- **{{LAUNDERING_PATHS}}** placement→integration chains — the *exact* count,
+  not a capped sample: the enumeration bound ({{LAUNDERING_MAX_PATHS}}) sits
+  strictly above the true number, so every chain is found and the depth
+  component is computed over the full population.
 
 The composite **layering score** is **{{LAYERING_SCORE}}** (of a possible 1),
 reflecting the substantial but deliberately incomplete obscuring structure.

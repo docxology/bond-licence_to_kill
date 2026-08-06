@@ -15,6 +15,7 @@ from licence_to_kill.laundering_graph import (
     _canonical_cycle,
     analyze_laundering,
     build_sanchez_network,
+    canonical_laundering_params,
 )
 
 _SOURCES = ("S1", "S2", "S3")
@@ -138,6 +139,56 @@ def test_layering_paths_dedup_and_cap():
     paths = g.layering_paths(["s"], ["b"])
     assert {tuple(p) for p in paths} == {("s", "f1", "b"), ("s", "f2", "b")}
     assert len(g.layering_paths(["s"], ["b"], max_paths=1)) == 1
+
+
+def test_canonical_layering_path_count_is_exact_not_saturated():
+    """C2: the reported chain count must be exact, not the enumeration cap.
+
+    Regression: ``canonical_laundering_params()`` used to cap ``max_paths`` at
+    200, which the canonical network saturated, so the reported chain count was
+    really ``min(true_count, 200)`` — a lower bound reported as a count, and
+    the composite depth component was computed over a truncated,
+    enumeration-order-biased sample. The cap is now set strictly above the true
+    count (720 here), so a default run enumerates every chain. Pin the exact
+    count and assert the enumeration stays exact (and the depth component
+    stable) when the cap is raised even further — if the cap ever saturates
+    again, this test fails first.
+    """
+    params = canonical_laundering_params()
+    graph = build_sanchez_network(seed=int(params["seed"]))
+    full = graph.layering_paths(
+        params["sources"],
+        params["sinks"],
+        max_depth=int(params["max_depth"]),
+        max_paths=10**9,
+    )
+    assert len(full) == 720
+    # the canonical cap must sit strictly above the true count (non-saturating)
+    assert len(full) < int(params["max_paths"])
+    default = analyze_laundering(
+        graph,
+        params["sources"],
+        params["sinks"],
+        max_depth=int(params["max_depth"]),
+        max_cycles=int(params["max_cycles"]),
+        max_paths=int(params["max_paths"]),
+        funnel_threshold=float(params["funnel_threshold"]),
+    )
+    assert len(default.layering_paths) == len(full)
+    # depth component converges on the full population; raising the cap changes
+    # neither the count nor the depth statistic
+    bigger = analyze_laundering(
+        graph,
+        params["sources"],
+        params["sinks"],
+        max_depth=int(params["max_depth"]),
+        max_cycles=int(params["max_cycles"]),
+        max_paths=10**9,
+        funnel_threshold=float(params["funnel_threshold"]),
+    )
+    assert bigger.layering_components["depth_component"] == pytest.approx(
+        default.layering_components["depth_component"]
+    )
 
 
 # ---------------------------------------------------------------- integration
