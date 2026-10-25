@@ -1,10 +1,4 @@
 # ROGUE experiment plan — validation inputs only; declares the deterministic runs.
-#
-# The three runs below are the graph, forensic-physics, and rogue-policy cores.
-# The phase-4 cores (narcotics finance, operations logistics, surveillance)
-# declare their canonical inputs in the `mission:` block of
-# manuscript/config.yaml, asserted equal to their `canonical_*_params()`
-# functions by tests/test_canonical_params.py.
 project: licence_to_kill
 codename: ROGUE
 
@@ -26,6 +20,28 @@ runs:
     module: rogue_ops
     inputs: {horizon: 10, alert_max: 10}
     outputs: [optimal_value, first_action, peak_blowback]
+  - name: finance
+    module: narcotics_finance
+    inputs:
+      value_usd: 5000000.0
+      denomination: 100.0
+      purity: 0.6
+      base_cost_per_kg: 1500.0
+      stages:
+        export: 3.0
+        wholesale: 2.0
+        street: 2.0
+      hold_volume_m3: 520.0
+      hold_mass_kg: 300000.0
+    outputs: [bills, mass_kg, volume_m3, street_per_pure_gram, "manifest.feasible", trips]
+  - name: logistics
+    module: operations_logistics
+    inputs: {origin: IC, destination: FL, legs: 5, gadgets: 7, capacity_kg: 25.0, speed_knots: 10.0, endurance_nm: 4257.0, refuel_hours: 24.0}
+    outputs: ["route.total_distance_nm", "route.cumulative_risk", "loadout.value", "loadout.weight_kg", "trip.feasible", "trip.total_hours", "trip.refuels"]
+  - name: surveillance
+    module: surveillance
+    inputs: {actions: 5, detection_threshold: 0.5, beta_0: -4.0, beta_watch: 1.2, beta_signature: 1.5, exact_limit: 8}
+    outputs: [optimal_order, success_probability, compromise_step, peak_hazard]
 
 primary_metrics:
   - layering_score
