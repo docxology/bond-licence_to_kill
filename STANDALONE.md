@@ -10,11 +10,12 @@ surveillance), a frozen `bond-api` `MissionProvider`
 adapter, token-driven manuscript, deterministic figures, and a zero-mock
 test suite run against the coverage gate recorded in `TODO.md`.
 
-## Local-only
+## Repository and deposit
 
-This is a **local-only working tree**: there is no remote and the package is
-never pushed or deposited. Publication metadata sidecars therefore drop all
-DOI/registrar fields.
+Source lives at <https://github.com/docxology/bond-licence_to_kill> (branch
+`main`). No DOI is minted for this package, so the publication metadata
+sidecars (`.zenodo.json`, `codemeta.json`, `CITATION.cff`) deliberately carry
+no DOI/registrar fields.
 
 ## Provenance
 

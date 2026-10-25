@@ -1,4 +1,10 @@
 # ROGUE experiment plan — validation inputs only; declares the deterministic runs.
+#
+# The three runs below are the graph, forensic-physics, and rogue-policy cores.
+# The phase-4 cores (narcotics finance, operations logistics, surveillance)
+# declare their canonical inputs in the `mission:` block of
+# manuscript/config.yaml, asserted equal to their `canonical_*_params()`
+# functions by tests/test_canonical_params.py.
 project: licence_to_kill
 codename: ROGUE
 

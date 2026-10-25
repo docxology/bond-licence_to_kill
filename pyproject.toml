@@ -35,9 +35,23 @@ dev = [
 ]
 
 # Bond-api is the FROZEN protocol contract; all film packages bind to it via
-# a local path dependency (local-only working tree, never pushed).
+# a local path dependency. The path below is machine-specific: point it at a
+# local bond-api checkout before `uv sync` / `uv lock`.
 [tool.uv.sources]
 bond-api = { path = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-api" }
+
+[tool.ruff]
+# The package is authored and formatted at 120 columns with ruff's historical
+# default lint set. Modern ruff defaults are 88 columns with a much wider rule
+# set, which fails the documented gate on code nobody reformatted — so both
+# are stated here instead of being inherited from whatever ruff version is
+# installed. Widening the rule set / narrowing the width is a deliberate
+# whole-tree migration, not a side effect of a tool upgrade.
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 
 [tool.pytest.ini_options]
 # RASP Strict Assertion: Tests must be clearly separated and structurally identifiable
@@ -60,8 +74,8 @@ omit = [
 ]
 
 [tool.coverage.report]
-# ≥90% on src/ is the enforced gate; live coverage % is tracked in
-# docs/_generated/COUNTS.md (do not hardcode it here — it drifts).
+# ≥90% on src/ is the enforced gate; the live measured coverage % is recorded
+# with its date in TODO.md (do not hardcode it here — it drifts).
 fail_under = 90
 show_missing = true
 precision = 2

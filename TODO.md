@@ -47,117 +47,6 @@ sub-unit-visibility action produces a non-zero alert increase.
 **Command:** `uv run pytest tests/test_rogue_ops.py tests/test_manuscript_variables.py -v`
 (the pinned `ROGUE_*` token assertions must be re-derived, not relaxed).
 
-**C2 · `LAUNDERING_PATHS` reports the enumeration cap, not the chain count.**
-`canonical_laundering_params()` sets `max_paths: 200`
-(`src/licence_to_kill/laundering_graph.py:474`) and the canonical network
-saturates it — `tests/test_canonical_params.py:145` asserts
-`len(baseline.layering_paths) == max_paths`, which is exactly the saturation
-proof. So the reported `{{LAUNDERING_PATHS}}` = 200 is a lower bound, and the
-depth component of the composite layering score
-(`laundering_graph.py:386`) is computed over a truncated, enumeration-order-
-biased sample rather than over the chain population. Disclosed in
-`manuscript/03_results.md:19-22` and
-`manuscript/07_scope_and_related_work.md:56-58` rather than fixed.
-**Done looks like:** either the cap is raised until the canonical network no
-longer saturates it (and the enumeration cost is measured and recorded), or
-the depth component is switched to a sampled estimate with a stated
-confidence interval. Either way `test_canonical_params.py:145` flips from
-asserting equality-with-the-cap to asserting strictly-below-the-cap, and the
-"read as at least this many" caveats leave the manuscript.
-**Command:** `uv run pytest tests/test_canonical_params.py tests/test_laundering_graph.py -v`
-
-### Verification — claims not yet bound by a test that can fail for the right reason
-
-**V1 · The direct-leg baseline binding is lexical, not behavioural.**
-`{{LOG_DIRECT_RISK}}` must come from the *direct leg* IC→FL, not from the
-distance-minimal path. On the canonical network the two coincide (both give
-0.300), so no value assertion on `generate_variables` can discriminate the
-two implementations. The guard that stops the token generator regressing to
-routing is `tests/test_manuscript_variables.py:223-236`, which asserts
-`"shortest_path" not in source` on the text of
-`src/licence_to_kill/manuscript_variables.py`. It is falsifiable (proven red
-on revert) and honestly documented as a source-text guard in its own
-docstring, but it is defeated by an alias import (`from ... import
-shortest_path as _sp`) and it forbids any future legitimate use of routing
-in that module. The semantic and behavioural discrimination lives elsewhere
-(`test_direct_leg_risk_reads_the_direct_leg_not_the_shortest_path`,
-`tests/test_figures.py::test_operations_figure_requires_a_real_direct_leg`).
-*Carried from* `output/verify/licence_to_kill.unresolved.json` *entry 1.*
-**Done looks like:** a behavioural binding on the production entry point —
-inject a network into `generate_variables` (or into the params it reads) on
-which the direct leg and the distance-minimal path give *different* risks,
-and assert the token equals the direct-leg value. When that test exists, the
-lexical guard at :223 can be deleted.
-**Command:** `uv run pytest tests/test_manuscript_variables.py -v` — the new
-test must go red when `direct_leg_risk` is swapped for a `shortest_path`
-call, with the lexical guard removed.
-
-**V2 · The layering score's "useful for ranking" claim is unbound.**
-`LAYERING_WEIGHTS = (0.4, 0.3, 0.3)`
-(`src/licence_to_kill/laundering_graph.py:53`, consumed at `:386`) is a
-hand-chosen blend. `manuscript/07_scope_and_related_work.md:52-56` concedes
-the score is meaningless as an absolute but asserts it is "useful for
-ranking structures against each other". Nothing tests that ranking claim: no
-test perturbs the weights and checks that the ordering of two distinct
-networks survives. As written the manuscript makes a stability claim the
-suite cannot falsify.
-**Done looks like:** a test that builds ≥2 structurally distinct networks,
-sweeps the weight simplex (a coarse grid is enough), and asserts the induced
-ranking is invariant — or, if it is not invariant, the manuscript sentence
-is weakened to the measured share of the simplex on which it holds, with
-that number carried as a token.
-**Command:** `uv run pytest tests/test_laundering_graph.py -v`
-
-**V3 · The frozen-registry test does not express the additive-only rule.**
-`AGENTS.md` ("Protocol integration") and `README.md` state that
-`GADGET_REGISTRY` is frozen with **additive changes only**.
-`tests/test_mission.py:140-151` asserts exact set equality against the eight
-current names, so an addition and a removal are indistinguishable to the
-gate — both simply require editing the literal. The rule "removals are
-forbidden, additions are allowed" is stated only in prose.
-**Done looks like:** the seven frozen callables plus `network_manifest`
-asserted as a required *subset* (removal fails), with a separate explicit
-assertion or comment recording that additions are permitted — so the diff
-that adds a gadget does not look like the diff that deletes one.
-**Command:** `uv run pytest tests/test_mission.py::test_gadget_registry_register -v`
-
-### Documentation
-
-**D1 · `pyproject.toml` still describes a three-domain package.**
-`pyproject.toml:15` reads `description = "Licence to Kill: ROGUE —
-special-agent mission software (money-laundering graph, vessel forensics,
-rogue-00 risk model)"`, and the header comment at `pyproject.toml:1-5` says
-the same. The package has had **six** domain cores since `c87e302`;
-`narcotics_finance`, `operations_logistics`, and `surveillance` are absent.
-This is the same defect the audit raised against `.zenodo.json` and
-`codemeta.json` — those two were fixed and now name all six, but
-`pyproject.toml` was not, so the stale text is republished into
-`src/licence_to_kill.egg-info/PKG-INFO:4` on every build.
-*Residue of* `output/verify/licence_to_kill.json` *finding 6.*
-**Done looks like:** `pyproject.toml:15` and the `:1-5` comment name all six
-domains, matching `.zenodo.json`'s description in substance; a rebuild
-regenerates `PKG-INFO` with the corrected summary.
-**Command:** `grep -c narcotics pyproject.toml src/licence_to_kill.egg-info/PKG-INFO`
-— both counts must be ≥ 1.
-
-**D2 · `STANDALONE.md` names three domains and quotes a stale coverage number.**
-`STANDALONE.md:7-10` describes "a pure domain core (money-laundering graph,
-vessel forensics, rogue-00 risk DP)" — three of six — and claims "a zero-mock
-test suite at ~99 % line + branch coverage". The measured figure today is
-100.00 %, and quoting any percentage there contradicts the package's own
-convention, stated in `README.md` ("Coverage and test counts are
-deliberately not quoted here") and in `AGENTS.md`, that the only coverage
-number lives in this file with its measurement date. Note `STANDALONE.md:19-24`
-is already correct — it names all six domains — so the file contradicts
-itself.
-*Residue of* `output/verify/licence_to_kill.json` *finding 6.*
-**Done looks like:** `STANDALONE.md:7-10` names all six domain cores and
-either drops the percentage entirely (pointing at `TODO.md`, as README and
-AGENTS.md do) or quotes the dated measurement from this file's opening
-paragraph.
-**Command:** `grep -n "99 %\|surveillance" STANDALONE.md` — no `99 %` match,
-and `surveillance` present in the opening description.
-
 ### Extension — genuine future work, nothing broken
 
 **E1 · A canonical gadget set on which exact DP beats greedy.**
@@ -239,10 +128,11 @@ requires reshaping the fleet surface.
 These are accepted. Recording them here is what stops them being
 re-litigated as findings.
 
-- **No remote, no push, no deposit.** This is a local-only working tree with
-  no git remote. `.zenodo.json`, `codemeta.json`, and `CITATION.cff` exist as
-  metadata sidecars with all DOI/registrar fields dropped; they are never
-  submitted anywhere.
+- **No DOI, no registrar deposit.** The package is published as source at
+  <https://github.com/docxology/bond-licence_to_kill> (branch `main`).
+  `.zenodo.json`, `codemeta.json`, and `CITATION.cff` exist as metadata
+  sidecars with all DOI/registrar fields dropped, so nothing in the tree
+  announces a DOI it does not have.
 - **No Monte Carlo anywhere.** Every domain is closed-form or exact by
   construction — seeded generation, analytic physics, exact DP, exact
   shortest path and knapsack, exhaustive permutation search. The determinism
@@ -297,8 +187,9 @@ figure.
 
 ## Verification
 
-Run from the package root (`projects/working/bond/licence_to_kill`). All
-six must be clean; the first is the gate.
+Run from the repository root (a standalone clone of
+`docxology/bond-licence_to_kill`). All six must be clean; the first is the
+gate.
 
 | Command | Expected |
 |---|---|
@@ -314,9 +205,8 @@ Install first if the environment is cold: `uv sync --extra dev` (a bare
 different interpreter).
 
 Sandbox note: `uv` cannot initialise its cache under the default sandbox
-(`Failed to initialize cache at /Users/4d/.cache/uv`). Re-run the same
-command with the sandbox disabled if you hit that; it is not a package
-failure.
+(`Failed to initialize cache at <home>/.cache/uv`). Re-run the same command
+with the sandbox disabled if you hit that; it is not a package failure.
 
 ---
 
@@ -395,3 +285,41 @@ zero alert increase; changing it (half-integer lattice or an explicitly
 integral ladder) alters the optimal policy and every pinned `ROGUE_*` token and
 is a standalone, deliberate decision. The extension items **E1–E5** remain as
 scoped future work; all are unchanged in behaviour this round.
+
+---
+
+## Maintenance pass (2026-10-25)
+
+Legacy-and-documentation pass on a clean tree at `a7d0ea0`. No domain code
+changed, no behaviour moved, no dependency or lockfile change:
+
+- The "local-only tree, no remote, never pushed" claim (README, STANDALONE,
+  AGENTS, `docs/`, this file, `manuscript/config.yaml` + `SYNTAX.md`) predated
+  the GitHub remote and is replaced by the real source of record.
+- Closed items **C2, V1, V2, V3, D1, D2** were still listed above as *open*
+  work with "Done looks like" instructions — the state the Round-2 section
+  already records as closed. They are removed from Open work; **C1** and
+  **E1–E5** remain.
+- `pyproject.toml` gained an explicit `[tool.ruff]` block (`line-length = 120`,
+  the historical `E4,E7,E9,F` set). Modern ruff defaults (88 columns, a much
+  wider rule set) failed the documented `ruff check` / `ruff format --check`
+  gate on code nobody had reformatted — a red gate on an unchanged tree. The
+  gate is now version-stable, and widening the rule set is a deliberate
+  whole-tree migration rather than a tool-upgrade side effect.
+- `scripts/00_preflight.py` asserted the three-domain gadget subset; it now
+  asserts the eight frozen registry entries (subset, additive-only).
+- `tests/test_manuscript_variables.py::test_project_root_path` required the
+  checkout directory to be named `licence_to_kill`; the published repository is
+  `bond-licence_to_kill`, so a canonical clone failed it. It now asserts
+  repository markers, with the package directory name checked separately.
+- `domain_profile.yaml` declared 3 figures (there are 4);
+  `experiment_plan.yaml` now says where the phase-4 runs are declared.
+
+Verification on this host (2026-10-25): `ruff check` and `ruff format --check`
+clean under both the locked ruff 0.16.1 and 0.17.2; `mypy src/ scripts/` clean
+under 2.3.0 and 2.4.0; 168 passed / 2 failed in the `bond-api`-free subset
+(9 of 11 suites). Both failures are `ModuleNotFoundError: No module named
+'bond_api'` — the dependency is a local path source with no checkout on this
+host, so `test_mission.py` and `test_scripts_smoke.py`, and therefore the
+full-suite test count and the byte-identical regeneration check, could not be
+run here. Re-run the full gate where `[tool.uv.sources]` resolves.

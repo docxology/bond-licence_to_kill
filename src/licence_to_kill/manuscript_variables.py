@@ -76,7 +76,7 @@ __all__ = [
 
 
 def project_root() -> Path:
-    """Absolute path of the package root (``.../bond/licence_to_kill``)."""
+    """Absolute path of the repository root (``.../bond-licence_to_kill``)."""
     return Path(__file__).resolve().parents[2]
 
 

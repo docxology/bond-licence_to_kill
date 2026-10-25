@@ -13,7 +13,19 @@ import sys
 from _bootstrap import PROVIDER
 from bond_api.protocol import MissionProvider as ProtocolType, protocol_surface
 
-_EXPECTED_GADGETS = {"laundering_analyzer", "vessel_forensics", "rogue_risk_model"}
+#: The frozen registry entries the film must still register (subset check, so
+#: adding a gadget stays legal — same additive-only rule as
+#: ``tests/test_mission.py::_FROZEN_GADGET_NAMES``).
+_EXPECTED_GADGETS = {
+    "laundering_analyzer",
+    "laundering_network",
+    "vessel_forensics",
+    "rogue_risk_model",
+    "narcotics_finance",
+    "operations_router",
+    "surveillance_model",
+    "network_manifest",
+}
 
 
 def main() -> int:

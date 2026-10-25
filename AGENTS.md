@@ -96,11 +96,13 @@ Coverage percentages and test counts are not quoted in this file — the
 Read [`docs/agent_instructions.md`](docs/agent_instructions.md) first. In
 brief: do not reshape the frozen protocol surface; never mock; keep the
 domain core pure; keep manuscripts token-driven; no silent failure paths and
-no guards that cannot fire; stay inside this package; commit path-scoped;
-never push (local-only tree, no remote).
+no guards that cannot fire; stay inside this repository; commit path-scoped
+on `main`; never force-push or rewrite published history.
 
 ## Publishing
 
-Local-only: no remote, no Zenodo or GitHub deposits. The `bond-api`
-dependency is a local path source. Author: Daniel Ari Friedman (Active
-Inference Institute).
+Published as source at <https://github.com/docxology/bond-licence_to_kill>;
+no DOI/registrar deposit is made, so the metadata sidecars carry no registrar
+fields. The `bond-api` dependency is a local path source and must be pointed
+at a local checkout. Author: Daniel Ari Friedman (Active Inference
+Institute).

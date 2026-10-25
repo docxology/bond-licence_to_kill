@@ -13,7 +13,7 @@ review_gates:
 source_policy: pure domain core (stdlib + numpy only); no infrastructure imports
 
 artifact_expectations:
-  figures: 3
+  figures: 4
   manuscript: token-driven
   outcomes: provenance-carrying (input_hash, seed, wall_time_s)
   gadgets: registered with bond_api GadgetRegistry

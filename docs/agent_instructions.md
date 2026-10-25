@@ -108,10 +108,11 @@ All public functions carry type hints and docstrings. `ruff check`,
 
 ## Rule 10 — Scope and git discipline
 
-Only `projects/working/bond/licence_to_kill/` is yours. Never touch sibling
-packages, bond root files, or the template repo. This is a **local-only**
-tree: there is no remote, and it is never pushed. Commit path-scoped inside
-this package's own repo.
+Only this repository is yours — never touch whichever fleet monorepo
+(`bond-api`, sibling film packages, template) supplied the `bond-api` path
+dependency, and never edit that checkout from here. `main` is the default
+branch and is published at <https://github.com/docxology/bond-licence_to_kill>:
+commit path-scoped, never force-push, never rewrite published history.
 
 ## Verification checklist
 

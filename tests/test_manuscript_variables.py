@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from licence_to_kill import manuscript_variables
 from licence_to_kill.laundering_graph import canonical_laundering_params
 from licence_to_kill.narcotics_finance import canonical_finance_params
 from licence_to_kill.operations_logistics import (
@@ -116,8 +117,25 @@ def test_load_mission_config_reads_title():
 
 
 def test_project_root_path():
+    """The root must be the repository, not ``src/`` or an ancestor.
+
+    The clone directory's name is deliberately *not* asserted: the published
+    repository is ``docxology/bond-licence_to_kill``, so a canonical clone is
+    named ``bond-licence_to_kill`` while the importable package inside it keeps
+    the original ``licence_to_kill`` name. Repository markers are the stable
+    contract.
+    """
     root = project_root()
-    assert root.name == "licence_to_kill"
+    assert (root / "pyproject.toml").is_file()
+    assert (root / "src" / "licence_to_kill" / "mission.py").is_file()
+    assert (root / "manuscript" / "config.yaml").is_file()
+
+
+def test_package_directory_keeps_its_name():
+    """The importable package directory stays ``licence_to_kill`` under ``src/``."""
+    package_dir = Path(manuscript_variables.__file__).resolve().parent
+    assert package_dir.name == "licence_to_kill"
+    assert package_dir.parent.name == "src"
 
 
 def test_substitute_replaces_known_and_leaves_unknown():

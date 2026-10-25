@@ -15,8 +15,9 @@ authors:
     affiliation: "Active Inference Institute"
     corresponding: true
 
-# Local-only tree: no remote, no DOIs. Publication metadata is deliberately
-# minimal; the package is never pushed or deposited.
+# Publication metadata is deliberately minimal: no DOI/registrar fields, so
+# the manuscript never announces a deposit that was not made. Source:
+# https://github.com/docxology/bond-licence_to_kill
 publication:
   github_repository: ""
   repository_url: ""

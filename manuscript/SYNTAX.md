@@ -46,4 +46,4 @@ reference in prose as `[@fig:label]` or `@fig:label`.
 `scripts/z_generate_manuscript_variables.py` writes substituted sections to
 `output/manuscript/*.md` and the variable map to
 `output/data/manuscript_variables.json`. Rendering infrastructure is outside
-this package's scope (local-only tree; no remote, no publishing).
+this package's scope; nothing here is deposited to a DOI registrar.

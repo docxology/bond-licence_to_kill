@@ -39,7 +39,8 @@ permutation search. There is no Monte Carlo anywhere in the package.
 ## Quick start
 
 ```bash
-# Install (binds bond-api via its local path dependency)
+# Install. bond-api is a local path dependency: point [tool.uv.sources] in
+# pyproject.toml at a local bond-api checkout before running this.
 uv sync --extra dev
 
 # The gate: tests + >= 90 % line and branch coverage on src/
@@ -132,7 +133,8 @@ are in [`TODO.md`](TODO.md).
 
 ## Notes
 
-Local-only working tree: there is no remote and it is never pushed. Author:
-Daniel Ari Friedman (Active Inference Institute). Start with
-[`docs/agent_instructions.md`](docs/agent_instructions.md) before changing
-anything.
+Source: <https://github.com/docxology/bond-licence_to_kill> (branch `main`).
+No DOI is minted, and the `bond-api` binding stays a local path dependency
+(see above). Author: Daniel Ari Friedman (Active Inference Institute). Start
+with [`docs/agent_instructions.md`](docs/agent_instructions.md) before
+changing anything.

@@ -39,7 +39,8 @@ PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 ## Quick commands
 
 ```bash
-cd projects/working/bond/licence_to_kill
+# run from the repository root (standalone clone of docxology/bond-licence_to_kill)
+# uv sync needs a local bond-api checkout: see [tool.uv.sources] in pyproject.toml
 uv sync --extra dev
 uv run pytest tests/ --cov=src --cov-fail-under=90
 uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/

@@ -14,7 +14,8 @@ authors:
     affiliation: "Active Inference Institute"
     corresponding: true
 
-# Local-only tree: no remote, so publication metadata is deliberately empty.
+# No DOI/registrar deposit is made, so publication metadata is deliberately
+# empty here.
 publication:
   github_repository: ""
   repository_url: ""

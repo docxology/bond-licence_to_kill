@@ -38,4 +38,5 @@ uv run python scripts/z_generate_manuscript_variables.py
 git status --short   # clean after a path-scoped commit
 ```
 
-Local-only tree: no remote, never pushed.
+Source of record: <https://github.com/docxology/bond-licence_to_kill>, branch
+`main`. No DOI/registrar deposit.
