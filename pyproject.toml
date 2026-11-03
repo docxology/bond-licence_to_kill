@@ -38,7 +38,7 @@ dev = [
 # a local path dependency. The path below is machine-specific: point it at a
 # local bond-api checkout before `uv sync` / `uv lock`.
 [tool.uv.sources]
-bond-api = { path = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-api" }
+bond-api = { path = "../bond-api" }
 
 [tool.ruff]
 # The package is authored and formatted at 120 columns with ruff's historical
