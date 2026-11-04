@@ -103,6 +103,6 @@ on `main`; never force-push or rewrite published history.
 
 Published as source at <https://github.com/docxology/bond-licence_to_kill>;
 no DOI/registrar deposit is made, so the metadata sidecars carry no registrar
-fields. The `bond-api` dependency is a local path source and must be pointed
-at a local checkout. Author: Daniel Ari Friedman (Active Inference
-Institute).
+fields. The `bond-api` dependency resolves to the copy recorded in
+`vendor/bond-api`, refreshed through `scripts/vendor.py` and never edited in
+place. Author: Daniel Ari Friedman (Active Inference Institute).

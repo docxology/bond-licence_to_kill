@@ -34,9 +34,11 @@ dev = [
     "types-PyYAML>=6.0",
 ]
 
-# Bond-api is the FROZEN protocol contract; all film packages bind to it via
-# a local path dependency. The path below is machine-specific: point it at a
-# local bond-api checkout before `uv sync` / `uv lock`.
+# Bond-api is the FROZEN protocol contract; this package binds to the copy
+# recorded in vendor/bond-api (upstream sha and per-file digests in
+# vendor/bond-api/PROVENANCE.json, verified offline by
+# `scripts/vendor.py --check`). Refresh the copy through that script; never
+# edit it in place.
 [tool.uv.sources]
 bond-api = { path = "vendor/bond-api" }
 

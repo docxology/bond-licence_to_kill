@@ -108,11 +108,13 @@ All public functions carry type hints and docstrings. `ruff check`,
 
 ## Rule 10 — Scope and git discipline
 
-Only this repository is yours — never touch whichever fleet monorepo
-(`bond-api`, sibling film packages, template) supplied the `bond-api` path
-dependency, and never edit that checkout from here. `main` is the default
-branch and is published at <https://github.com/docxology/bond-licence_to_kill>:
-commit path-scoped, never force-push, never rewrite published history.
+Only this repository is yours. `vendor/bond-api` is a recorded copy of the
+frozen contract — upstream sha and per-file digests in its `PROVENANCE.json` —
+so never edit it in place and never touch the upstream `bond-api` checkout or
+the fleet monorepo that hosts it: refresh the copy with `scripts/vendor.py`
+and commit the result. `main` is the default branch and is published at
+<https://github.com/docxology/bond-licence_to_kill>: commit path-scoped, never
+force-push, never rewrite published history.
 
 ## Verification checklist
 
