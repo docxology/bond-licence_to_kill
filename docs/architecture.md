@@ -261,5 +261,6 @@ rather than merely named. Change the Python first, then the YAML.
 The package is non-workspace and standalone. `scripts/_bootstrap.py` injects
 the repo root and `src/` onto `sys.path` for the thin CLIs;
 `tests/conftest.py` does the same for tests and pins `MPLBACKEND=Agg`. The
-only non-stdlib runtime dependencies are numpy, matplotlib, PyYAML, and the
-local path dependency on `bond-api`.
+only non-stdlib runtime dependencies are numpy, matplotlib, PyYAML, and
+`bond-api`, bound as a local path dependency on the copy recorded in
+`vendor/bond-api` — so a clone needs no sibling checkout.

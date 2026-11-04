@@ -121,6 +121,46 @@ requires reshaping the fleet surface.
 `tests/test_canonical_params.py`.
 **Command:** `uv run pytest tests/ --cov=src --cov-fail-under=90`
 
+### Lint configuration — recorded, and one open red
+
+**V4 · The vendored copy is excluded from this package's lint gate, and this
+records what that exclusion changes.**
+`pyproject.toml` already declared this package's own configuration
+(`line-length = 120`, `select = ["E4", "E7", "E9", "F"]`) rather than
+inheriting the suite's; the vendoring added `extend-exclude = ["vendor"]` to
+that table and `exclude = ["(^|/)vendor/"]` to `[tool.mypy]`, so the gate
+judges this package's files and not the recorded copy's bytes. Measured at
+ruff 0.16.1 with a two-arm control that keeps the table in this file and
+varies only its body, whole-tree scope:
+
+| Command | `extend-exclude = ["vendor"]` | that line removed |
+|---|---|---|
+| `ruff check .` | rc=0, `All checks passed!` | rc=0, `All checks passed!` |
+| `ruff format --check .` | rc=1, **1** file, 71 already formatted | rc=1, **2** files, 79 already formatted |
+
+So the exclusion removes nine files from the whole-tree file set and one
+reformat target — `vendor/bond-api/README.md:95:1`, a fenced block in the
+vendored copy's own README — while `ruff check` is clean either way. The
+documented gate is scoped to `src/ scripts/ tests/` and moves only by the two
+files the vendoring added (39 → 41, all formatted). The checker
+`scripts/vendor.py` conforms to this package's declared width: clean under
+`--line-length 120` (the gate above) and `ruff format --check --line-length 88
+scripts/vendor.py` reports 1 file to reformat.
+**Command:** `uv run ruff format --check . && uv run ruff format --check src/ scripts/ tests/`
+
+**V5 · The whole-tree format check is red on a code block this gate does not
+read, at both ends of this change.**
+`ruff 0.16.1` formats fenced Python blocks in Markdown, so `ruff format
+--check .` reports `README.md:71:31` at the pre-vendoring head `cc987b3` (1
+file, 69 already formatted) and at this head (1 file, 71 already formatted).
+Nothing regressed — the documented gate is scoped to `src/ scripts/ tests/`
+and has never included `README.md` — but a whole-tree invocation is red on a
+file the gate does not read, and this row exists so that red is not silently
+carried by an expectation that does not mention its scope. Not fixed here:
+the vendoring change does not own that line, and a README edit does not
+belong in a dependency commit.
+**Command:** `uv run ruff format --check .` (expect rc=1, `README.md:71:31`)
+
 ---
 
 ## Known limitations (not bugs)
@@ -193,16 +233,18 @@ gate.
 
 | Command | Expected |
 |---|---|
-| `uv run pytest tests/ --cov=src --cov-fail-under=90` | all tests pass; total coverage ≥ 90 % line **and** branch on `src/` (measured 192 passed / 100.00 % on 2026-08-05) |
-| `uv run ruff check src/ scripts/ tests/` | `All checks passed!` |
-| `uv run ruff format --check src/ scripts/ tests/` | `39 files already formatted` |
-| `uv run mypy src/ scripts/` | `Success: no issues found in 20 source files` |
-| `uv run python scripts/z_generate_manuscript_variables.py` | writes `output/data/manuscript_variables.json` (107 tokens), `output/data/mission_results.json`, 4 figures, and 9 rendered sections under `output/manuscript/` |
+| `uv run pytest tests/ --cov=src --cov-fail-under=90` | all tests pass; total coverage ≥ 90 % line **and** branch on `src/` (measured **197 passed / 100.00 %** — 1211 statements / 302 branches — on 2026-11-04; 192 passed on 2026-08-05) |
+| `uv run ruff check src/ scripts/ tests/` | `All checks passed!` (measured 2026-11-04; `extend-exclude = ["vendor"]` keeps the vendored copy out of this file set — see V4) |
+| `uv run ruff format --check src/ scripts/ tests/` | `41 files already formatted` (measured 2026-11-04; 39 before `vendor/bond-api` arrived — the two new files are `scripts/vendor.py` and `tests/test_vendor_provenance.py`) |
+| `uv run mypy src/ scripts/` | `Success: no issues found in 21 source files` (measured 2026-11-04; 20 before `scripts/vendor.py`) |
+| `uv run python scripts/z_generate_manuscript_variables.py` | writes `output/data/manuscript_variables.json` (**109 tokens**, measured 2026-11-04; 107 on 2026-08-05), `output/data/mission_results.json`, 4 figures, and 9 rendered sections under `output/manuscript/` |
 | the same command twice with `sleep 1` between, comparing `find output -type f \| sort \| xargs cat \| md5` | identical hashes — the byte-for-byte claim the manuscript makes. `tests/test_manuscript_variables.py::test_regeneration_is_byte_identical` runs this in-suite; the shell form is the independent check |
 
 Install first if the environment is cold: `uv sync --extra dev` (a bare
 `uv sync` prunes pytest, and `uv run pytest` then silently resolves a
-different interpreter).
+different interpreter). The install resolves `bond-api` from
+`vendor/bond-api`, so a standalone clone needs no sibling checkout; a cold
+clone of this repository is the configuration these numbers were measured in.
 
 Sandbox note: `uv` cannot initialise its cache under the default sandbox
 (`Failed to initialize cache at <home>/.cache/uv`). Re-run the same command
