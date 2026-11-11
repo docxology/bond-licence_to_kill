@@ -365,3 +365,7 @@ under 2.3.0 and 2.4.0; 168 passed / 2 failed in the `bond-api`-free subset
 host, so `test_mission.py` and `test_scripts_smoke.py`, and therefore the
 full-suite test count and the byte-identical regeneration check, could not be
 run here. Re-run the full gate where `[tool.uv.sources]` resolves.
+
+## Workflowz review — 2026-11-10
+
+Bounded review coverage: the supplied excerpts of the root guidance, README, existing TODO, Python/runtime and dependency configuration, package initializers, three domain modules, and three phase CLIs were inspected. No new concrete, independently closable improvement survived the evidence gate; existing TODO items were not duplicated. Re-review on a concrete failure or a relevant source/configuration change.
