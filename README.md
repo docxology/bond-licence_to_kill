@@ -4,6 +4,30 @@ PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 **ROGUE**. Deterministic special-agent mission software: six pure domain
 cores behind the frozen `bond-api` `MissionProvider` protocol.
 
+## Mission model
+
+```mermaid
+flowchart TD
+    accTitle: Licence To Kill implemented mission analyses
+    accDescr: Cartel transactions, vessel profile and covert-operation parameters feed Laundering cycles and cash manifest feasibility; Vessel anomalies and risk-adjusted logistics; Rogue-operation policy and surveillance survival. The mission adapter returns layering, feasibility, route and exposure reports with provenance, then a debrief.
+    I["Cartel transactions, vessel profile and covert-operation parameters"]
+    G0["Laundering cycles and cash manifest feasibility"]
+    I --> G0
+    G1["Vessel anomalies and risk-adjusted logistics"]
+    I --> G1
+    G2["Rogue-operation policy and surveillance survival"]
+    I --> G2
+    O["mission.py: execute returns MissionOutcome<br/>Layering, feasibility, route and exposure reports and provenance"]
+    G0 --> O
+    G1 --> O
+    G2 --> O
+    O --> F["debrief: mission summary"]
+```
+
+The branches group implemented capabilities; they do not imply a runtime order.
+
+**Source map:** [`laundering_graph.py`](src/licence_to_kill/laundering_graph.py), [`narcotics_finance.py`](src/licence_to_kill/narcotics_finance.py); [`vessel_forensics.py`](src/licence_to_kill/vessel_forensics.py), [`operations_logistics.py`](src/licence_to_kill/operations_logistics.py); [`rogue_ops.py`](src/licence_to_kill/rogue_ops.py), [`surveillance.py`](src/licence_to_kill/surveillance.py); [`mission.py`](src/licence_to_kill/mission.py).
+
 ## The film as a specification
 
 Franz Sanchez runs a cartel. Its cash is laundered from street placement
