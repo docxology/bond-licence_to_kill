@@ -1,5 +1,7 @@
 # docs/ — documentation hub for licence_to_kill (ROGUE)
 
+[Package maintenance](package-maintenance.md) covers dependency and release records.
+
 Everything an agent or a new reader needs in order to change this package
 without breaking the fleet or the manuscript. Three documents, each with a
 distinct job.
