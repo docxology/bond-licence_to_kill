@@ -1,5 +1,7 @@
 # licence_to_kill — ROGUE
 
+See [package maintenance](docs/package-maintenance.md) for dependency and citation records.
+
 PROJECT BOND film package for *Licence to Kill* (1989), mission codename
 **ROGUE**. Deterministic special-agent mission software: six pure domain
 cores behind the frozen `bond-api` `MissionProvider` protocol.

@@ -1,5 +1,7 @@
 # docs/ — licence_to_kill (ROGUE)
 
+[Package maintenance](package-maintenance.md) identifies the dependency and citation records.
+
 Index of this directory. Read
 [`agent_instructions.md`](agent_instructions.md) before modifying any file —
 it is the binding rulebook. Then [`architecture.md`](architecture.md) for
