@@ -1,5 +1,8 @@
 # licence_to_kill — *Licence to Kill* (1989) · mission codename ROGUE
 
+The [package maintenance guide](docs/package-maintenance.md) records the
+distribution identity, Python selection, dependency provenance, and citation metadata.
+
 Build, test, and verify reference for this package. `licence_to_kill` is a
 PROJECT BOND film package: deterministic special-agent mission software that
 implements the **frozen** `bond-api` `MissionProvider` protocol over six
